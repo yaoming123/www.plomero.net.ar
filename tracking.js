@@ -14,6 +14,18 @@ document.addEventListener('click', function (e) {
     const enNav = !!a.closest('nav'), enPie = !!a.closest('footer');
     let ev = null;
 
+    /* "🔍 ¡Encontrar plomero!" dentro de un modal (el del menú ya se mide abajo como click_nav_buscar) */
+    if (a.closest('#modal') && /mostrarModalBuscarProveedor/.test(a.getAttribute('onclick') || '')) {
+        const ctx = contextoContacto();
+        track('click_buscar_modal', Object.assign({
+            categoria: 'busqueda',
+            accion: 'buscar_modal',
+            etiqueta: a.textContent.trim().substring(0, 60),
+            origen: ctx.canal ? 'modal_contacto' : 'modal'
+        }, ctx));
+        return;
+    }
+
     if (/terminos-y-condiciones/.test(href)) ev = 'click_terminos';
     else if (enNav && /mostrarModalBuscarProveedor/.test(a.getAttribute('onclick') || '')) ev = 'click_nav_buscar';
     else if (enNav && href && href[0] !== '#') ev = 'click_nav_zona_padre';
@@ -145,6 +157,14 @@ function canalDeUrl(url) {
     if (/google\.com\/maps/i.test(url)) return 'mapa';
     return 'otro';
 }
+
+/* Evento que se dispara al hacer clic en un enlace de contacto, según el canal */
+const EVENTO_CANAL = {
+    whatsapp:  'click_whatsapp',
+    instagram: 'click_instagram',
+    facebook:  'click_facebook',
+    mapa:      'click_mapa'
+};
 
 function esCanalDeContacto(a) {
     const href = a.getAttribute('href') || '';
@@ -363,8 +383,22 @@ document.addEventListener('click', function (e) {
             url: a.href,
             servicio: a.getAttribute('data-servicio') || 'Contacto general'
         };
+        const origenContacto = a.closest('#contacto') ? 'contacto' : a.closest('.servicio') ? 'servicios' : 'pagina';
+        const canal = canalDeUrl(a.href);
+        /* Si el enlace ya mide por su cuenta (onclick con trackEvent / trackDynamicWhatsAppClick), no se duplica */
+        const midePorSuCuenta = /trackEvent\s*=?\s*\(|trackDynamicWhatsAppClick/.test(a.getAttribute('onclick') || '');
+
         if (/^tel:/i.test(a.getAttribute('href'))) {
-            track('click_telefono', { canal: 'telefono', servicio: window.ultimoContacto.servicio });
+            track('click_telefono', { canal: 'telefono', servicio: window.ultimoContacto.servicio, origen: origenContacto });
+        } else if (EVENTO_CANAL[canal] && !midePorSuCuenta) {
+            track(EVENTO_CANAL[canal], {
+                categoria: 'contacto',
+                accion: canal,
+                etiqueta: (a.textContent.trim() || a.getAttribute('aria-label') || '').substring(0, 60),
+                canal: canal,
+                servicio: window.ultimoContacto.servicio,
+                origen: origenContacto
+            });
         }
     }
 
