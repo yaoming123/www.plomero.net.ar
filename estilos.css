@@ -756,65 +756,6 @@ footer a { color: #fff; }
 }
 @keyframes barra { to { background-position: -200% 0; } }
 
-/* ---------- Votación (la crea votacion.js) ---------- */
-#rating-section {
-    position: fixed;
-    left: 1rem;
-    bottom: 1rem;
-    z-index: 950;
-    width: min(300px, calc(100vw - 2rem));
-    padding: 1.1rem 1rem 1rem;
-    border-radius: var(--radio);
-    background: #fff;
-    box-shadow: var(--sombra-fuerte);
-    text-align: center;
-    font-size: .85rem;
-}
-#rating-section p { margin: 0 0 .35rem; }
-#rating-section ul {
-    display: flex;
-    justify-content: center;
-    gap: .25rem;
-    margin: .6rem 0 .9rem;
-    padding: 0;
-    list-style: none;
-}
-#rating-section .star {
-    font-size: 1.7rem;
-    line-height: 1;
-    cursor: pointer;
-    filter: grayscale(1);
-    opacity: .45;
-    transition: transform .15s ease, opacity .15s ease, filter .15s ease;
-}
-#rating-section .star:hover, #rating-section .star.selected {
-    filter: none;
-    opacity: 1;
-    transform: scale(1.15);
-}
-#close-rating {
-    position: absolute;
-    top: .35rem;
-    right: .35rem;
-    border: 0;
-    border-radius: 50%;
-    background: none;
-    color: #5b6b63;
-    cursor: pointer;
-}
-#close-rating:hover { background: var(--gris-claro); }
-#submit-rating {
-    padding: .6rem;
-    border: 0;
-    border-radius: 10px;
-    background: var(--gris-medio);
-    color: #7b8a82;
-    font: inherit;
-    font-weight: 600;
-    cursor: not-allowed;
-}
-#submit-rating.enabled { background: var(--estado); color: #fff; cursor: pointer; }
-
 /* ---------- Animación de entrada del logo ---------- */
 .animation_back_in_rigth { animation: entradaDerecha .9s ease both; }
 @keyframes entradaDerecha {
