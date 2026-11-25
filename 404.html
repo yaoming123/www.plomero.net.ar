@@ -20,14 +20,29 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
 
 
-<script>(function (w, d, s, l, i) {
-        w[l] = w[l] || []; w[l].push({
-            'gtm.start':
-                new Date().getTime(), event: 'gtm.js'
-        }); var f = d.getElementsByTagName(s)[0],
-            j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
-                'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
-    })(window, document, 'script', 'dataLayer', 'GTM-W4NSZ7JP');</script>
+<script>
+    (function (w, d) {
+        var propio = 'plomero.net.ar', clave = 'analitica', eleccion = null;
+        try {
+            var pedido = new URLSearchParams(location.search).get(clave);
+            if (pedido === 'si' || pedido === 'no') localStorage.setItem(clave, pedido);
+            else if (pedido === 'auto') localStorage.removeItem(clave);
+            eleccion = localStorage.getItem(clave);
+        } catch (e) { /* sin localStorage: se decide solo por el dominio */ }
+
+        var enDominio = location.hostname.replace(/^www\./, '') === propio;
+        var medir = eleccion ? eleccion === 'si' : enDominio;
+        w.__analitica = { medir: medir, por: eleccion ? 'eleccion_' + eleccion : (enDominio ? 'dominio' : 'otro_dominio') };
+        if (!medir) return;
+
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+        var s = d.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtm.js?id=GTM-W4NSZ7JP';
+        d.head.appendChild(s);
+    })(window, document);
+</script>
     
 
 </head>

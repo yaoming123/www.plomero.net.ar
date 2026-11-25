@@ -75,17 +75,30 @@
 </script>
 
 
-<script>(function (w, d, s, l, i) {
-        w[l] = w[l] || []; w[l].push({
-            'gtm.start':
-                new Date().getTime(), event: 'gtm.js'
-        }); var f = d.getElementsByTagName(s)[0],
-            j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
-                'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
-    })(window, document, 'script', 'dataLayer', 'GTM-W4NSZ7JP');</script>
+<script>
+    (function (w, d) {
+        var propio = 'plomero.net.ar', clave = 'analitica', eleccion = null;
+        try {
+            var pedido = new URLSearchParams(location.search).get(clave);
+            if (pedido === 'si' || pedido === 'no') localStorage.setItem(clave, pedido);
+            else if (pedido === 'auto') localStorage.removeItem(clave);
+            eleccion = localStorage.getItem(clave);
+        } catch (e) { /* sin localStorage: se decide solo por el dominio */ }
 
-    <link rel="stylesheet" href="votacion.css">
-    <script defer src="votacion.js"></script>
+        var enDominio = location.hostname.replace(/^www\./, '') === propio;
+        var medir = eleccion ? eleccion === 'si' : enDominio;
+        w.__analitica = { medir: medir, por: eleccion ? 'eleccion_' + eleccion : (enDominio ? 'dominio' : 'otro_dominio') };
+        if (!medir) return;
+
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+        var s = d.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtm.js?id=GTM-W4NSZ7JP';
+        d.head.appendChild(s);
+    })(window, document);
+</script>
+
 </head>
 
 <body>
@@ -121,7 +134,7 @@
             <a href="index.html">🗺️ Plomeros en Argentina</a>
         </li>
         <li>
-            <a onclick="mostrarModalBuscarProveedor()">🔍 Encontrar Plomeros</a>
+            <a data-medir="click_nav_buscar" onclick="mostrarModalBuscarProveedor()">🔍 Encontrar Plomeros</a>
         </li>
         <li>
             <a href="terminos-y-condiciones.html">📋 Términos y Condiciones</a>
@@ -332,6 +345,8 @@
         </div>
 
 </div>
+
+
         </div>
     </header>
 
@@ -811,7 +826,7 @@
                     ¿Ofrecés servicios de plomería?? <strong>¡Este espacio está disponible, anunciate aquí!</strong>
                 </p>
 
-                <form id="whatsapp-form" novalidate>
+                <form id="whatsapp-form" novalidate data-clarity-mask="true">
 
                     <input id="section" name="section" value="https://www.plomero.net.ar/san-luis.html" readonly
                         style="display:none;">
@@ -1689,7 +1704,9 @@
         else if (s.custom)      { badge.className = 'svc-badge custom';  badge.textContent = '➕ Nuevo';         badge.style.display = ''; }
         else if (isEdited(s))   { badge.className = 'svc-badge edited';  badge.textContent = '✏️ Editado';       badge.style.display = ''; }
         else                    { badge.style.display = 'none'; }
-        card.querySelector('.btn-toggle').textContent = s.removed ? '↩️ Mantener' : '🗑️ Eliminar';
+        const toggle = card.querySelector('.btn-toggle');
+        toggle.textContent = s.removed ? '↩️ Mantener' : '🗑️ Eliminar';
+        toggle.dataset.accion = s.removed ? 'mantener' : 'eliminar';   // lo lee tracking.js
         const restore = card.querySelector('.btn-restore');
         if (restore) restore.style.display = isEdited(s) && !s.removed ? '' : 'none';
     }
@@ -1875,54 +1892,6 @@
 </footer>
 
 
-<script>
-  // Copiar datos del proveedor
-  function copiarDatosProveedor() {
-    const nombre = document.getElementById('modal-nombre')?.textContent || 'No disponible';
-    const telefono = document.getElementById('modal-telefono')?.textContent || 'No disponible';
-    const ubicacion = document.getElementById('modal-ubicacion')?.textContent || 'No disponible';
-    const pagado = document.getElementById('modal-pagado')?.textContent || 'No disponible';
-
-    const datos = `Nombre: ${nombre}
-    Teléfono: ${telefono}
-    Ubicación: ${ubicacion}
-    Pagado por: ${pagado}
-    Fuente: plomero.net.ar`;
-
-    navigator.clipboard.writeText(datos).then(() => {
-      alert('✅ Datos copiados al portapapeles');
-    }).catch(() => {
-      alert('No se pudo copiar. Intenta nuevamente.');
-    });
-  }
-
-  // Descargar modal como imagen
-  function descargarModalImagen() {
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.8/dist/html2canvas-pro.min.js';
-    script.onload = function () {
-      const modalContent = document.getElementById('modal-content');
-      html2canvas(modalContent, {
-        backgroundColor: '#ffffff',
-        scale: 2,
-        allowTaint: true,
-        useCORS: true
-      }).then(canvas => {
-        const link = document.createElement('a');
-        const nombre = document.getElementById('modal-nombre')?.textContent || 'proveedor';
-        const fecha = new Date().toLocaleDateString('es-AR');
-        link.href = canvas.toDataURL('image/png');
-        link.download = `${nombre}_${fecha}.png`;
-        link.click();
-      }).catch(error => {
-        console.error('Error al descargar:', error);
-        alert('No se pudo descargar la imagen. Intenta nuevamente.');
-      });
-    };
-    document.head.appendChild(script);
-  }
-
-</script>
 <div id="modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
   <div class="modal-contenido">
     <img src="logo.png" class="animation_back_in_rigth" alt="logotipo" loading="lazy" style="width: 15rem; height: 15rem;">
@@ -1949,8 +1918,9 @@
     abortController = null;
   }
 
-  function abrirModal(html) {
+  function abrirModal(html, tipo) {
     modalContent.innerHTML = html;
+    modal.dataset.tipo = tipo || "otro";
     modal.classList.add("active");
   }
 
@@ -1971,14 +1941,14 @@
     `;
 
     if (url) {
-      html += `<button class="button" onclick="window.open('${url}', '_blank'); cerrarModal();">✅ Continuar</button>`;
+      html += `<button class="button" data-medir="contacto_confirmado" onclick="window.open('${url}', '_blank'); cerrarModal();">✅ Continuar</button>`;
     }
     
     html += `
-        <button class="button button-danger" onclick="cerrarModal();">❌ Cancelar</button>
+        <button class="button button-danger" data-medir="contacto_cancelado" data-cierre="cancelar" onclick="cerrarModal();">❌ Cancelar</button>
       </div>
             <div style="margin: 1.5rem 0;">
-        <a class="button" onclick="mostrarModalBuscarProveedor()">🔍 ¡Encontrar plomero!</a>
+        <a class="button" data-medir="click_buscar_modal" onclick="mostrarModalBuscarProveedor()">🔍 ¡Encontrar plomero!</a>
         <button class="button" onclick="compartirSeccion();">🗣️ Compartir a un plomero conocido</button>
       </div>
       <div class="modal-legal">
@@ -1987,97 +1957,9 @@
       </div>
     `;
 
-    abrirModal(html);
+    abrirModal(html, url ? "contacto" : "aviso");
   }
   
-  function mostrarModalAdvertenciaDemo(titulo, mensaje, url = null) {
-      let html = `       
-        <h1 id="modal-title">${titulo}</h1>
-        <p>${mensaje}</p>
-
-        <div class="disclosure-section" style="margin-top: 1.5rem; border: 1px solid #dadce0; border-radius: 8px;">
-          
-          <button class="disclosure-header expanded"
-            onclick="if(this.nextElementSibling){this.classList.toggle('expanded'); this.nextElementSibling.classList.toggle('expanded');}"
-            style="padding: 16px; background: #f8f9fa; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border: none; width: 100%; font-size: 14px; font-weight: 500; color: #202124;">
-            <span>ℹ️ Acerca del anunciante</span>
-            <span style="transition: transform 0.3s; display: inline-block;">▼</span>
-          </button>
-          
-          <div class="disclosure-content expanded" style="max-height: 1000px; overflow: hidden; background: white;">
-            <div style="padding: 16px; border-top: 1px solid #dadce0;">
-
-              <div style="display: grid; gap: 12px;">
-
-
-                <div
-                  style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
-                  <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Nombre del negocio</span>
-                  <span style="color: #202124; font-size: 13px;" id="modal-nombre">None</span>
-                </div>
-
-                <div
-                  style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
-                  <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Teléfono</span>
-                  <span style="color: #202124; font-size: 13px;" id="modal-telefono">None</span>
-                </div>
-
-                <div style="display: flex; justify-content: space-between; padding: 8px 0;">
-                  <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Sección</span>
-                  
-                  <span style="color: #202124; font-size: 13px; text-transform: capitalize;" id="modal-ubicacion">
-                  san luis
-                  </span>
-              
-                  </div>
-
-                <div style="display: flex; justify-content: space-between; padding: 8px 0;">
-                  <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Pagado por</span>
-                  <span style="color: #202124; font-size: 13px; text-transform: capitalize;" id="modal-pagado">None</span>
-                </div>
-
-                <div style="display: flex; justify-content: space-between; padding: 8px 0;">
-                  <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Anunciando desde</span>
-                  <span style="color: #202124; font-size: 13px;" id="modal-pagado">None</span>
-                </div>
-
-              </div>
-
-            </div>
-          </div>
-        </div>        
-
-        <div style="margin-top: 1.5rem;">
-      `;
-
-      if (url) {
-        html += `<button class="button" onclick="window.open('${url}', '_blank'); cerrarModal();">✅ Continuar</button>`;
-      }
-      
-      html += `
-          <button class="button button-danger" onclick="cerrarModal();">❌ Cancelar</button>
-        </div>
-
-                <div style="display: flex; justify-content: space-between; padding: 8px 0;">
-          <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Fecha y hora</span>
-          <span style="color: #202124; font-size: 13px;" id="modal-pagado">
-            <p id="reloj"></p>
-          </span>
-        </div>
-
-        <a onclick="copiarDatosProveedor()" href="#" style="font-size: 1rem; float: inline-start;">📋 Copiar al portapapeles esta información</a><br>
-        <a onclick="descargarModalImagen()" href="#" style="font-size: 1rem; float: inline-start;">⬇️ Descargar imagen de esta información</a><br>
-        <a href="#" style="font-size:1rem; color:#d93025; float: inline-start;">⚠️ Reportar problema con este anunciante</a>
-        <div class="modal-legal">
-          Al contactar, confirmas que aceptas 
-          <a href="terminos-y-condiciones.html">Términos y Condiciones</a>.
-        </div>
-      `;
-
-      abrirModal(html);
-    }
-  
-
   
   function mostrarModalAdvertenciaformulario(mensaje, url = null) {
     let html = `
@@ -2087,7 +1969,7 @@
     `;
     
     html += `
-        <button class="button button-danger" onclick="cerrarModal();">❌ Cancelar</button>
+        <button class="button button-danger" data-cierre="cancelar" onclick="cerrarModal();">❌ Cancelar</button>
       </div>
       <div class="modal-legal">
         Al enviar el formulario, confirmas que has leído y aceptas 
@@ -2095,7 +1977,7 @@
       </div>
     `;
 
-    abrirModal(html);
+    abrirModal(html, "aviso");
   }
 
   
@@ -2112,14 +1994,14 @@
 
       <p>O probá con una distancia máxima más alta.</p>
       
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar</button>
 
       <div class="modal-legal">
         Al usar el buscador, confirmas que aceptas 
         <a href="terminos-y-condiciones.html">Términos y Condiciones</a>.
       </div>
     `;
-    abrirModal(html);
+    abrirModal(html, "sin_resultados");
   }
 
   
@@ -2148,14 +2030,14 @@
 
     html += `
       </ul>
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar</button>
       <div class="modal-legal">
         Al contactar a un proveedor, confirmas que aceptas 
         <a href="terminos-y-condiciones.html">Términos y Condiciones</a>.
       </div>
     `;
 
-    abrirModal(html);
+    abrirModal(html, "resultados");
   }
 
   
@@ -2163,9 +2045,9 @@
     const html = `
       <h1 id="modal-title">📍 Error en la Búsqueda</h1>
       <p><strong>${mensaje}</strong></p>
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar e Intentar de Nuevo</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar e Intentar de Nuevo</button>
     `;
-    abrirModal(html);
+    abrirModal(html, "error");
   }
 
   
@@ -2241,7 +2123,7 @@
           <p>Buscando proveedores cercanos...</p>
         </div>
         <div id="progress-bar"></div>
-      `);
+      `, "cargando");
 
       const posicion = await obtenerUbicacionConFallback();
       const userLat = posicion.coords.latitude;
@@ -2320,163 +2202,19 @@
       <input type="number" id="umbral-km" value="${ultimoUmbralKm}" step="1" min="0" style="width: 100%; text-align: center;">
       <p>Si hay proveedores aparecerán del más cercano al más lejano.</p>
       <button onclick="buscarPorUbicacion();" class="button button1">🔍 Buscar proveedor de servicios</button>
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar</button>
      
 
 <select id="localidades" onchange="window.location.href=this.value;" class="button button2" style="width:80%;background-color: var(--fondo);color: white;">
 <option value="">Seleccione una opción</option>
 
 
-<option value="san-luis/candelaria.html" style="color: darkred;">
-    ✘ | candelaria
+<option value="san-luis/alto-pelado.html" style="color: darkred;">
+    ✘ | alto pelado
 </option>
 
-<option value="san-luis/leandro-n-alem.html" style="color: darkred;">
-    ✘ | leandro n. alem
-</option>
-
-<option value="san-luis/lujan.html" style="color: darkred;">
-    ✘ | luján
-</option>
-
-<option value="san-luis/quines.html" style="color: darkred;">
-    ✘ | quines
-</option>
-
-<option value="san-luis/san-francisco-del-monte-de-oro.html" style="color: darkred;">
-    ✘ | san francisco del monte de oro
-</option>
-
-<option value="san-luis/la-calera.html" style="color: darkred;">
-    ✘ | la calera
-</option>
-
-<option value="san-luis/nogoli.html" style="color: darkred;">
-    ✘ | nogolí
-</option>
-
-<option value="san-luis/villa-de-la-quebrada.html" style="color: darkred;">
-    ✘ | villa de la quebrada
-</option>
-
-<option value="san-luis/villa-general-roca.html" style="color: darkred;">
-    ✘ | villa general roca
-</option>
-
-<option value="san-luis/carolina.html" style="color: darkred;">
-    ✘ | carolina
-</option>
-
-<option value="san-luis/el-trapiche.html" style="color: darkred;">
-    ✘ | el trapiche
-</option>
-
-<option value="san-luis/estancia-grande.html" style="color: darkred;">
-    ✘ | estancia grande
-</option>
-
-<option value="san-luis/fraga.html" style="color: darkred;">
-    ✘ | fraga
-</option>
-
-<option value="san-luis/la-bajada.html" style="color: darkred;">
-    ✘ | la bajada
-</option>
-
-<option value="san-luis/la-florida.html" style="color: darkred;">
-    ✘ | la florida
-</option>
-
-<option value="san-luis/la-toma.html" style="color: darkred;">
-    ✘ | la toma
-</option>
-
-<option value="san-luis/riocito.html" style="color: darkred;">
-    ✘ | riocito
-</option>
-
-<option value="san-luis/rio-grande.html" style="color: darkred;">
-    ✘ | río grande
-</option>
-
-<option value="san-luis/saladillo.html" style="color: darkred;">
-    ✘ | saladillo
-</option>
-
-<option value="san-luis/concaran.html" style="color: darkred;">
-    ✘ | concarán
-</option>
-
-<option value="san-luis/cortaderas.html" style="color: darkred;">
-    ✘ | cortaderas
-</option>
-
-<option value="san-luis/naschel.html" style="color: darkred;">
-    ✘ | naschel
-</option>
-
-<option value="san-luis/papagayos.html" style="color: darkred;">
-    ✘ | papagayos
-</option>
-
-<option value="san-luis/renca.html" style="color: darkred;">
-    ✘ | renca
-</option>
-
-<option value="san-luis/san-pablo.html" style="color: darkred;">
-    ✘ | san pablo
-</option>
-
-<option value="san-luis/tilisarao.html" style="color: darkred;">
-    ✘ | tilisarao
-</option>
-
-<option value="san-luis/villa-del-carmen.html" style="color: darkred;">
-    ✘ | villa del carmen
-</option>
-
-<option value="san-luis/villa-larca.html" style="color: darkred;">
-    ✘ | villa larca
-</option>
-
-<option value="san-luis/juan-jorba.html" style="color: darkred;">
-    ✘ | juan jorba
-</option>
-
-<option value="san-luis/juan-llerena.html" style="color: darkred;">
-    ✘ | juan llerena
-</option>
-
-<option value="san-luis/justo-daract.html" style="color: darkred;">
-    ✘ | justo daract
-</option>
-
-<option value="san-luis/la-punilla.html" style="color: darkred;">
-    ✘ | la punilla
-</option>
-
-<option value="san-luis/lavaisse.html" style="color: darkred;">
-    ✘ | lavaisse
-</option>
-
-<option value="san-luis/nacion-ranquel.html" style="color: darkred;">
-    ✘ | nación ranquel
-</option>
-
-<option value="san-luis/san-jose-del-morro.html" style="color: darkred;">
-    ✘ | san josé del morro
-</option>
-
-<option value="san-luis/villa-mercedes.html" style="color: darkred;">
-    ✘ | villa mercedes
-</option>
-
-<option value="san-luis/villa-reynolds.html" style="color: darkred;">
-    ✘ | villa reynolds
-</option>
-
-<option value="san-luis/villa-salles.html" style="color: darkred;">
-    ✘ | villa salles
+<option value="san-luis/alto-pencoso.html" style="color: darkred;">
+    ✘ | alto pencoso
 </option>
 
 <option value="san-luis/anchorena.html" style="color: darkred;">
@@ -2491,12 +2229,68 @@
     ✘ | bagual
 </option>
 
+<option value="san-luis/balde.html" style="color: darkred;">
+    ✘ | balde
+</option>
+
 <option value="san-luis/batavia.html" style="color: darkred;">
     ✘ | batavia
 </option>
 
+<option value="san-luis/beazley.html" style="color: darkred;">
+    ✘ | beazley
+</option>
+
 <option value="san-luis/buena-esperanza.html" style="color: darkred;">
     ✘ | buena esperanza
+</option>
+
+<option value="san-luis/candelaria.html" style="color: darkred;">
+    ✘ | candelaria
+</option>
+
+<option value="san-luis/carolina.html" style="color: darkred;">
+    ✘ | carolina
+</option>
+
+<option value="san-luis/carpinteria.html" style="color: darkred;">
+    ✘ | carpintería
+</option>
+
+<option value="san-luis/cazador.html" style="color: darkred;">
+    ✘ | cazador
+</option>
+
+<option value="san-luis/cerro-de-oro.html" style="color: darkred;">
+    ✘ | cerro de oro
+</option>
+
+<option value="san-luis/chosmes.html" style="color: darkred;">
+    ✘ | chosmes
+</option>
+
+<option value="san-luis/concaran.html" style="color: darkred;">
+    ✘ | concarán
+</option>
+
+<option value="san-luis/cortaderas.html" style="color: darkred;">
+    ✘ | cortaderas
+</option>
+
+<option value="san-luis/desaguadero.html" style="color: darkred;">
+    ✘ | desaguadero
+</option>
+
+<option value="san-luis/el-trapiche.html" style="color: darkred;">
+    ✘ | el trapiche
+</option>
+
+<option value="san-luis/el-volcan.html" style="color: darkred;">
+    ✘ | el volcán
+</option>
+
+<option value="san-luis/estancia-grande.html" style="color: darkred;">
+    ✘ | estancia grande
 </option>
 
 <option value="san-luis/fortin-el-patria.html" style="color: darkred;">
@@ -2507,136 +2301,64 @@
     ✘ | fortuna
 </option>
 
-<option value="san-luis/la-maroma.html" style="color: darkred;">
-    ✘ | la maroma
-</option>
-
-<option value="san-luis/los-overos.html" style="color: darkred;">
-    ✘ | los overos
-</option>
-
-<option value="san-luis/martin-de-loyola.html" style="color: darkred;">
-    ✘ | martín de loyola
-</option>
-
-<option value="san-luis/nahuel-mapa.html" style="color: darkred;">
-    ✘ | nahuel mapá
-</option>
-
-<option value="san-luis/navia.html" style="color: darkred;">
-    ✘ | navia
-</option>
-
-<option value="san-luis/nueva-galia.html" style="color: darkred;">
-    ✘ | nueva galia
-</option>
-
-<option value="san-luis/union.html" style="color: darkred;">
-    ✘ | unión
-</option>
-
-<option value="san-luis/carpinteria.html" style="color: darkred;">
-    ✘ | carpintería
-</option>
-
-<option value="san-luis/cerro-de-oro.html" style="color: darkred;">
-    ✘ | cerro de oro
-</option>
-
-<option value="san-luis/lafinur.html" style="color: darkred;">
-    ✘ | lafinur
-</option>
-
-<option value="san-luis/los-cajones.html" style="color: darkred;">
-    ✘ | los cajones
-</option>
-
-<option value="san-luis/los-molles.html" style="color: darkred;">
-    ✘ | los molles
-</option>
-
-<option value="san-luis/merlo.html" style="color: darkred;">
-    ✘ | merlo
-</option>
-
-<option value="san-luis/santa-rosa-del-conlara.html" style="color: darkred;">
-    ✘ | santa rosa del conlara
-</option>
-
-<option value="san-luis/talita.html" style="color: darkred;">
-    ✘ | talita
-</option>
-
-<option value="san-luis/alto-pelado.html" style="color: darkred;">
-    ✘ | alto pelado
-</option>
-
-<option value="san-luis/alto-pencoso.html" style="color: darkred;">
-    ✘ | alto pencoso
-</option>
-
-<option value="san-luis/balde.html" style="color: darkred;">
-    ✘ | balde
-</option>
-
-<option value="san-luis/beazley.html" style="color: darkred;">
-    ✘ | beazley
-</option>
-
-<option value="san-luis/cazador.html" style="color: darkred;">
-    ✘ | cazador
-</option>
-
-<option value="san-luis/chosmes.html" style="color: darkred;">
-    ✘ | chosmes
-</option>
-
-<option value="san-luis/desaguadero.html" style="color: darkred;">
-    ✘ | desaguadero
-</option>
-
-<option value="san-luis/el-volcan.html" style="color: darkred;">
-    ✘ | el volcán
+<option value="san-luis/fraga.html" style="color: darkred;">
+    ✘ | fraga
 </option>
 
 <option value="san-luis/jarilla.html" style="color: darkred;">
     ✘ | jarilla
 </option>
 
+<option value="san-luis/juan-jorba.html" style="color: darkred;">
+    ✘ | juan jorba
+</option>
+
+<option value="san-luis/juan-llerena.html" style="color: darkred;">
+    ✘ | juan llerena
+</option>
+
 <option value="san-luis/juana-koslay.html" style="color: darkred;">
     ✘ | juana koslay
+</option>
+
+<option value="san-luis/justo-daract.html" style="color: darkred;">
+    ✘ | justo daract
+</option>
+
+<option value="san-luis/la-bajada.html" style="color: darkred;">
+    ✘ | la bajada
+</option>
+
+<option value="san-luis/la-calera.html" style="color: darkred;">
+    ✘ | la calera
+</option>
+
+<option value="san-luis/la-florida.html" style="color: darkred;">
+    ✘ | la florida
+</option>
+
+<option value="san-luis/la-maroma.html" style="color: darkred;">
+    ✘ | la maroma
+</option>
+
+<option value="san-luis/la-punilla.html" style="color: darkred;">
+    ✘ | la punilla
 </option>
 
 <option value="san-luis/la-punta.html" style="color: darkred;">
     ✘ | la punta
 </option>
 
-<option value="san-luis/mosmota.html" style="color: darkred;">
-    ✘ | mosmota
-</option>
-
-<option value="san-luis/potrero-de-los-funes.html" style="color: darkred;">
-    ✘ | potrero de los funes
-</option>
-
-<option value="san-luis/salinas-del-bebedero.html" style="color: darkred;">
-    ✘ | salinas del bebedero
-</option>
-
-<option value="san-luis/san-jeronimo.html" style="color: darkred;">
-    ✘ | san jerónimo
-</option>
-
-<option value="san-luis/san-luis.html" style="color: darkred;">
-    ✘ | san luis
-</option>
-
-<option value="san-luis/zanjitas.html" style="color: darkred;">
-    ✘ | zanjitas
+<option value="san-luis/la-toma.html" style="color: darkred;">
+    ✘ | la toma
 </option>
 
 <option value="san-luis/la-vertiente.html" style="color: darkred;">
     ✘ | la vertiente
+</option>
+
+<option value="san-luis/lafinur.html" style="color: darkred;">
+    ✘ | lafinur
 </option>
 
 <option value="san-luis/las-aguadas.html" style="color: darkred;">
@@ -2651,6 +2373,70 @@
     ✘ | las lagunas
 </option>
 
+<option value="san-luis/lavaisse.html" style="color: darkred;">
+    ✘ | lavaisse
+</option>
+
+<option value="san-luis/leandro-n-alem.html" style="color: darkred;">
+    ✘ | leandro n. alem
+</option>
+
+<option value="san-luis/los-cajones.html" style="color: darkred;">
+    ✘ | los cajones
+</option>
+
+<option value="san-luis/los-molles.html" style="color: darkred;">
+    ✘ | los molles
+</option>
+
+<option value="san-luis/los-overos.html" style="color: darkred;">
+    ✘ | los overos
+</option>
+
+<option value="san-luis/lujan.html" style="color: darkred;">
+    ✘ | luján
+</option>
+
+<option value="san-luis/martin-de-loyola.html" style="color: darkred;">
+    ✘ | martín de loyola
+</option>
+
+<option value="san-luis/merlo.html" style="color: darkred;">
+    ✘ | merlo
+</option>
+
+<option value="san-luis/mosmota.html" style="color: darkred;">
+    ✘ | mosmota
+</option>
+
+<option value="san-luis/nacion-ranquel.html" style="color: darkred;">
+    ✘ | nación ranquel
+</option>
+
+<option value="san-luis/nahuel-mapa.html" style="color: darkred;">
+    ✘ | nahuel mapá
+</option>
+
+<option value="san-luis/naschel.html" style="color: darkred;">
+    ✘ | naschel
+</option>
+
+<option value="san-luis/navia.html" style="color: darkred;">
+    ✘ | navia
+</option>
+
+<option value="san-luis/nogoli.html" style="color: darkred;">
+    ✘ | nogolí
+</option>
+
+<option value="san-luis/nueva-galia.html" style="color: darkred;">
+    ✘ | nueva galia
+</option>
+
+<option value="san-luis/papagayos.html" style="color: darkred;">
+    ✘ | papagayos
+</option>
+
 <option value="san-luis/paso-grande.html" style="color: darkred;">
     ✘ | paso grande
 </option>
@@ -2659,12 +2445,108 @@
     ✘ | potrerillo
 </option>
 
+<option value="san-luis/potrero-de-los-funes.html" style="color: darkred;">
+    ✘ | potrero de los funes
+</option>
+
+<option value="san-luis/quines.html" style="color: darkred;">
+    ✘ | quines
+</option>
+
+<option value="san-luis/renca.html" style="color: darkred;">
+    ✘ | renca
+</option>
+
+<option value="san-luis/rio-grande.html" style="color: darkred;">
+    ✘ | río grande
+</option>
+
+<option value="san-luis/riocito.html" style="color: darkred;">
+    ✘ | riocito
+</option>
+
+<option value="san-luis/saladillo.html" style="color: darkred;">
+    ✘ | saladillo
+</option>
+
+<option value="san-luis/salinas-del-bebedero.html" style="color: darkred;">
+    ✘ | salinas del bebedero
+</option>
+
+<option value="san-luis/san-francisco-del-monte-de-oro.html" style="color: darkred;">
+    ✘ | san francisco del monte de oro
+</option>
+
+<option value="san-luis/san-jeronimo.html" style="color: darkred;">
+    ✘ | san jerónimo
+</option>
+
+<option value="san-luis/san-jose-del-morro.html" style="color: darkred;">
+    ✘ | san josé del morro
+</option>
+
+<option value="san-luis/san-luis.html" style="color: darkred;">
+    ✘ | san luis
+</option>
+
 <option value="san-luis/san-martin.html" style="color: darkred;">
     ✘ | san martín
 </option>
 
+<option value="san-luis/san-pablo.html" style="color: darkred;">
+    ✘ | san pablo
+</option>
+
+<option value="san-luis/santa-rosa-del-conlara.html" style="color: darkred;">
+    ✘ | santa rosa del conlara
+</option>
+
+<option value="san-luis/talita.html" style="color: darkred;">
+    ✘ | talita
+</option>
+
+<option value="san-luis/tilisarao.html" style="color: darkred;">
+    ✘ | tilisarao
+</option>
+
+<option value="san-luis/union.html" style="color: darkred;">
+    ✘ | unión
+</option>
+
+<option value="san-luis/villa-de-la-quebrada.html" style="color: darkred;">
+    ✘ | villa de la quebrada
+</option>
+
 <option value="san-luis/villa-de-praga.html" style="color: darkred;">
     ✘ | villa de praga
+</option>
+
+<option value="san-luis/villa-del-carmen.html" style="color: darkred;">
+    ✘ | villa del carmen
+</option>
+
+<option value="san-luis/villa-general-roca.html" style="color: darkred;">
+    ✘ | villa general roca
+</option>
+
+<option value="san-luis/villa-larca.html" style="color: darkred;">
+    ✘ | villa larca
+</option>
+
+<option value="san-luis/villa-mercedes.html" style="color: darkred;">
+    ✘ | villa mercedes
+</option>
+
+<option value="san-luis/villa-reynolds.html" style="color: darkred;">
+    ✘ | villa reynolds
+</option>
+
+<option value="san-luis/villa-salles.html" style="color: darkred;">
+    ✘ | villa salles
+</option>
+
+<option value="san-luis/zanjitas.html" style="color: darkred;">
+    ✘ | zanjitas
 </option>
 
 
@@ -2676,7 +2558,7 @@
         <a href="terminos-y-condiciones.html">Términos y Condiciones</a>.
       </div>
       `;
-    abrirModal(html);
+    abrirModal(html, "buscar");
 
       inicializarSelect2("#localidades", "Buscar localidad");
   }

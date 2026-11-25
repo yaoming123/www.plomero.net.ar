@@ -75,17 +75,30 @@
 </script>
 
 
-<script>(function (w, d, s, l, i) {
-        w[l] = w[l] || []; w[l].push({
-            'gtm.start':
-                new Date().getTime(), event: 'gtm.js'
-        }); var f = d.getElementsByTagName(s)[0],
-            j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
-                'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
-    })(window, document, 'script', 'dataLayer', 'GTM-W4NSZ7JP');</script>
+<script>
+    (function (w, d) {
+        var propio = 'plomero.net.ar', clave = 'analitica', eleccion = null;
+        try {
+            var pedido = new URLSearchParams(location.search).get(clave);
+            if (pedido === 'si' || pedido === 'no') localStorage.setItem(clave, pedido);
+            else if (pedido === 'auto') localStorage.removeItem(clave);
+            eleccion = localStorage.getItem(clave);
+        } catch (e) { /* sin localStorage: se decide solo por el dominio */ }
 
-    <link rel="stylesheet" href="votacion.css">
-    <script defer src="votacion.js"></script>
+        var enDominio = location.hostname.replace(/^www\./, '') === propio;
+        var medir = eleccion ? eleccion === 'si' : enDominio;
+        w.__analitica = { medir: medir, por: eleccion ? 'eleccion_' + eleccion : (enDominio ? 'dominio' : 'otro_dominio') };
+        if (!medir) return;
+
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+        var s = d.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtm.js?id=GTM-W4NSZ7JP';
+        d.head.appendChild(s);
+    })(window, document);
+</script>
+
 </head>
 
 <body>
@@ -121,7 +134,7 @@
             <a href="index.html">🗺️ Plomeros en Argentina</a>
         </li>
         <li>
-            <a onclick="mostrarModalBuscarProveedor()">🔍 Encontrar Plomeros</a>
+            <a data-medir="click_nav_buscar" onclick="mostrarModalBuscarProveedor()">🔍 Encontrar Plomeros</a>
         </li>
         <li>
             <a href="terminos-y-condiciones.html">📋 Términos y Condiciones</a>
@@ -332,6 +345,8 @@
         </div>
 
 </div>
+
+
         </div>
     </header>
 
@@ -811,7 +826,7 @@
                     ¿Ofrecés servicios de plomería?? <strong>¡Este espacio está disponible, anunciate aquí!</strong>
                 </p>
 
-                <form id="whatsapp-form" novalidate>
+                <form id="whatsapp-form" novalidate data-clarity-mask="true">
 
                     <input id="section" name="section" value="https://www.plomero.net.ar/entre-rios.html" readonly
                         style="display:none;">
@@ -1689,7 +1704,9 @@
         else if (s.custom)      { badge.className = 'svc-badge custom';  badge.textContent = '➕ Nuevo';         badge.style.display = ''; }
         else if (isEdited(s))   { badge.className = 'svc-badge edited';  badge.textContent = '✏️ Editado';       badge.style.display = ''; }
         else                    { badge.style.display = 'none'; }
-        card.querySelector('.btn-toggle').textContent = s.removed ? '↩️ Mantener' : '🗑️ Eliminar';
+        const toggle = card.querySelector('.btn-toggle');
+        toggle.textContent = s.removed ? '↩️ Mantener' : '🗑️ Eliminar';
+        toggle.dataset.accion = s.removed ? 'mantener' : 'eliminar';   // lo lee tracking.js
         const restore = card.querySelector('.btn-restore');
         if (restore) restore.style.display = isEdited(s) && !s.removed ? '' : 'none';
     }
@@ -1875,54 +1892,6 @@
 </footer>
 
 
-<script>
-  // Copiar datos del proveedor
-  function copiarDatosProveedor() {
-    const nombre = document.getElementById('modal-nombre')?.textContent || 'No disponible';
-    const telefono = document.getElementById('modal-telefono')?.textContent || 'No disponible';
-    const ubicacion = document.getElementById('modal-ubicacion')?.textContent || 'No disponible';
-    const pagado = document.getElementById('modal-pagado')?.textContent || 'No disponible';
-
-    const datos = `Nombre: ${nombre}
-    Teléfono: ${telefono}
-    Ubicación: ${ubicacion}
-    Pagado por: ${pagado}
-    Fuente: plomero.net.ar`;
-
-    navigator.clipboard.writeText(datos).then(() => {
-      alert('✅ Datos copiados al portapapeles');
-    }).catch(() => {
-      alert('No se pudo copiar. Intenta nuevamente.');
-    });
-  }
-
-  // Descargar modal como imagen
-  function descargarModalImagen() {
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.8/dist/html2canvas-pro.min.js';
-    script.onload = function () {
-      const modalContent = document.getElementById('modal-content');
-      html2canvas(modalContent, {
-        backgroundColor: '#ffffff',
-        scale: 2,
-        allowTaint: true,
-        useCORS: true
-      }).then(canvas => {
-        const link = document.createElement('a');
-        const nombre = document.getElementById('modal-nombre')?.textContent || 'proveedor';
-        const fecha = new Date().toLocaleDateString('es-AR');
-        link.href = canvas.toDataURL('image/png');
-        link.download = `${nombre}_${fecha}.png`;
-        link.click();
-      }).catch(error => {
-        console.error('Error al descargar:', error);
-        alert('No se pudo descargar la imagen. Intenta nuevamente.');
-      });
-    };
-    document.head.appendChild(script);
-  }
-
-</script>
 <div id="modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
   <div class="modal-contenido">
     <img src="logo.png" class="animation_back_in_rigth" alt="logotipo" loading="lazy" style="width: 15rem; height: 15rem;">
@@ -1949,8 +1918,9 @@
     abortController = null;
   }
 
-  function abrirModal(html) {
+  function abrirModal(html, tipo) {
     modalContent.innerHTML = html;
+    modal.dataset.tipo = tipo || "otro";
     modal.classList.add("active");
   }
 
@@ -1971,14 +1941,14 @@
     `;
 
     if (url) {
-      html += `<button class="button" onclick="window.open('${url}', '_blank'); cerrarModal();">✅ Continuar</button>`;
+      html += `<button class="button" data-medir="contacto_confirmado" onclick="window.open('${url}', '_blank'); cerrarModal();">✅ Continuar</button>`;
     }
     
     html += `
-        <button class="button button-danger" onclick="cerrarModal();">❌ Cancelar</button>
+        <button class="button button-danger" data-medir="contacto_cancelado" data-cierre="cancelar" onclick="cerrarModal();">❌ Cancelar</button>
       </div>
             <div style="margin: 1.5rem 0;">
-        <a class="button" onclick="mostrarModalBuscarProveedor()">🔍 ¡Encontrar plomero!</a>
+        <a class="button" data-medir="click_buscar_modal" onclick="mostrarModalBuscarProveedor()">🔍 ¡Encontrar plomero!</a>
         <button class="button" onclick="compartirSeccion();">🗣️ Compartir a un plomero conocido</button>
       </div>
       <div class="modal-legal">
@@ -1987,97 +1957,9 @@
       </div>
     `;
 
-    abrirModal(html);
+    abrirModal(html, url ? "contacto" : "aviso");
   }
   
-  function mostrarModalAdvertenciaDemo(titulo, mensaje, url = null) {
-      let html = `       
-        <h1 id="modal-title">${titulo}</h1>
-        <p>${mensaje}</p>
-
-        <div class="disclosure-section" style="margin-top: 1.5rem; border: 1px solid #dadce0; border-radius: 8px;">
-          
-          <button class="disclosure-header expanded"
-            onclick="if(this.nextElementSibling){this.classList.toggle('expanded'); this.nextElementSibling.classList.toggle('expanded');}"
-            style="padding: 16px; background: #f8f9fa; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border: none; width: 100%; font-size: 14px; font-weight: 500; color: #202124;">
-            <span>ℹ️ Acerca del anunciante</span>
-            <span style="transition: transform 0.3s; display: inline-block;">▼</span>
-          </button>
-          
-          <div class="disclosure-content expanded" style="max-height: 1000px; overflow: hidden; background: white;">
-            <div style="padding: 16px; border-top: 1px solid #dadce0;">
-
-              <div style="display: grid; gap: 12px;">
-
-
-                <div
-                  style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
-                  <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Nombre del negocio</span>
-                  <span style="color: #202124; font-size: 13px;" id="modal-nombre">None</span>
-                </div>
-
-                <div
-                  style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
-                  <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Teléfono</span>
-                  <span style="color: #202124; font-size: 13px;" id="modal-telefono">None</span>
-                </div>
-
-                <div style="display: flex; justify-content: space-between; padding: 8px 0;">
-                  <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Sección</span>
-                  
-                  <span style="color: #202124; font-size: 13px; text-transform: capitalize;" id="modal-ubicacion">
-                  entre ríos
-                  </span>
-              
-                  </div>
-
-                <div style="display: flex; justify-content: space-between; padding: 8px 0;">
-                  <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Pagado por</span>
-                  <span style="color: #202124; font-size: 13px; text-transform: capitalize;" id="modal-pagado">None</span>
-                </div>
-
-                <div style="display: flex; justify-content: space-between; padding: 8px 0;">
-                  <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Anunciando desde</span>
-                  <span style="color: #202124; font-size: 13px;" id="modal-pagado">None</span>
-                </div>
-
-              </div>
-
-            </div>
-          </div>
-        </div>        
-
-        <div style="margin-top: 1.5rem;">
-      `;
-
-      if (url) {
-        html += `<button class="button" onclick="window.open('${url}', '_blank'); cerrarModal();">✅ Continuar</button>`;
-      }
-      
-      html += `
-          <button class="button button-danger" onclick="cerrarModal();">❌ Cancelar</button>
-        </div>
-
-                <div style="display: flex; justify-content: space-between; padding: 8px 0;">
-          <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Fecha y hora</span>
-          <span style="color: #202124; font-size: 13px;" id="modal-pagado">
-            <p id="reloj"></p>
-          </span>
-        </div>
-
-        <a onclick="copiarDatosProveedor()" href="#" style="font-size: 1rem; float: inline-start;">📋 Copiar al portapapeles esta información</a><br>
-        <a onclick="descargarModalImagen()" href="#" style="font-size: 1rem; float: inline-start;">⬇️ Descargar imagen de esta información</a><br>
-        <a href="#" style="font-size:1rem; color:#d93025; float: inline-start;">⚠️ Reportar problema con este anunciante</a>
-        <div class="modal-legal">
-          Al contactar, confirmas que aceptas 
-          <a href="terminos-y-condiciones.html">Términos y Condiciones</a>.
-        </div>
-      `;
-
-      abrirModal(html);
-    }
-  
-
   
   function mostrarModalAdvertenciaformulario(mensaje, url = null) {
     let html = `
@@ -2087,7 +1969,7 @@
     `;
     
     html += `
-        <button class="button button-danger" onclick="cerrarModal();">❌ Cancelar</button>
+        <button class="button button-danger" data-cierre="cancelar" onclick="cerrarModal();">❌ Cancelar</button>
       </div>
       <div class="modal-legal">
         Al enviar el formulario, confirmas que has leído y aceptas 
@@ -2095,7 +1977,7 @@
       </div>
     `;
 
-    abrirModal(html);
+    abrirModal(html, "aviso");
   }
 
   
@@ -2112,14 +1994,14 @@
 
       <p>O probá con una distancia máxima más alta.</p>
       
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar</button>
 
       <div class="modal-legal">
         Al usar el buscador, confirmas que aceptas 
         <a href="terminos-y-condiciones.html">Términos y Condiciones</a>.
       </div>
     `;
-    abrirModal(html);
+    abrirModal(html, "sin_resultados");
   }
 
   
@@ -2148,14 +2030,14 @@
 
     html += `
       </ul>
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar</button>
       <div class="modal-legal">
         Al contactar a un proveedor, confirmas que aceptas 
         <a href="terminos-y-condiciones.html">Términos y Condiciones</a>.
       </div>
     `;
 
-    abrirModal(html);
+    abrirModal(html, "resultados");
   }
 
   
@@ -2163,9 +2045,9 @@
     const html = `
       <h1 id="modal-title">📍 Error en la Búsqueda</h1>
       <p><strong>${mensaje}</strong></p>
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar e Intentar de Nuevo</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar e Intentar de Nuevo</button>
     `;
-    abrirModal(html);
+    abrirModal(html, "error");
   }
 
   
@@ -2241,7 +2123,7 @@
           <p>Buscando proveedores cercanos...</p>
         </div>
         <div id="progress-bar"></div>
-      `);
+      `, "cargando");
 
       const posicion = await obtenerUbicacionConFallback();
       const userLat = posicion.coords.latitude;
@@ -2320,107 +2202,23 @@
       <input type="number" id="umbral-km" value="${ultimoUmbralKm}" step="1" min="0" style="width: 100%; text-align: center;">
       <p>Si hay proveedores aparecerán del más cercano al más lejano.</p>
       <button onclick="buscarPorUbicacion();" class="button button1">🔍 Buscar proveedor de servicios</button>
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar</button>
      
 
 <select id="localidades" onchange="window.location.href=this.value;" class="button button2" style="width:80%;background-color: var(--fondo);color: white;">
 <option value="">Seleccione una opción</option>
 
 
-<option value="entre-rios/arroyo-baru.html" style="color: darkred;">
-    ✘ | arroyo barú
+<option value="entre-rios/1o-de-mayo.html" style="color: darkred;">
+    ✘ | 1º de mayo
 </option>
 
-<option value="entre-rios/colon.html" style="color: darkred;">
-    ✘ | colón
+<option value="entre-rios/alcaraz.html" style="color: darkred;">
+    ✘ | alcaraz
 </option>
 
-<option value="entre-rios/colonia-hugues.html" style="color: darkred;">
-    ✘ | colonia hugues
-</option>
-
-<option value="entre-rios/hambis.html" style="color: darkred;">
-    ✘ | hambis
-</option>
-
-<option value="entre-rios/hocker.html" style="color: darkred;">
-    ✘ | hocker
-</option>
-
-<option value="entre-rios/la-clarita.html" style="color: darkred;">
-    ✘ | la clarita
-</option>
-
-<option value="entre-rios/pueblo-cazes.html" style="color: darkred;">
-    ✘ | pueblo cazes
-</option>
-
-<option value="entre-rios/pueblo-liebig-s.html" style="color: darkred;">
-    ✘ | pueblo liebig's
-</option>
-
-<option value="entre-rios/san-jose.html" style="color: darkred;">
-    ✘ | san josé
-</option>
-
-<option value="entre-rios/ubajay.html" style="color: darkred;">
-    ✘ | ubajay
-</option>
-
-<option value="entre-rios/villa-elisa.html" style="color: darkred;">
-    ✘ | villa elisa
-</option>
-
-<option value="entre-rios/calabacilla.html" style="color: darkred;">
-    ✘ | calabacilla
-</option>
-
-<option value="entre-rios/clodomiro-ledesma.html" style="color: darkred;">
-    ✘ | clodomiro ledesma
-</option>
-
-<option value="entre-rios/colonia-ayui.html" style="color: darkred;">
-    ✘ | colonia ayuí
-</option>
-
-<option value="entre-rios/colonia-general-roca.html" style="color: darkred;">
-    ✘ | colonia general roca
-</option>
-
-<option value="entre-rios/concordia.html" style="color: darkred;">
-    ✘ | concordia
-</option>
-
-<option value="entre-rios/estacion-yerua.html" style="color: darkred;">
-    ✘ | estación yeruá
-</option>
-
-<option value="entre-rios/estacion-yuqueri.html" style="color: darkred;">
-    ✘ | estación yuquerí
-</option>
-
-<option value="entre-rios/estancia-grande.html" style="color: darkred;">
-    ✘ | estancia grande
-</option>
-
-<option value="entre-rios/la-criolla.html" style="color: darkred;">
-    ✘ | la criolla
-</option>
-
-<option value="entre-rios/los-charruas.html" style="color: darkred;">
-    ✘ | los charrúas
-</option>
-
-<option value="entre-rios/nueva-escocia.html" style="color: darkred;">
-    ✘ | nueva escocia
-</option>
-
-<option value="entre-rios/pedernal.html" style="color: darkred;">
-    ✘ | pedernal
-</option>
-
-<option value="entre-rios/puerto-yerua.html" style="color: darkred;">
-    ✘ | puerto yeruá
+<option value="entre-rios/aldea-asuncion.html" style="color: darkred;">
+    ✘ | aldea asunción
 </option>
 
 <option value="entre-rios/aldea-brasilera.html" style="color: darkred;">
@@ -2431,6 +2229,10 @@
     ✘ | aldea grapschental
 </option>
 
+<option value="entre-rios/aldea-maria-luisa.html" style="color: darkred;">
+    ✘ | aldea maría luisa
+</option>
+
 <option value="entre-rios/aldea-protestante.html" style="color: darkred;">
     ✘ | aldea protestante
 </option>
@@ -2439,288 +2241,20 @@
     ✘ | aldea salto
 </option>
 
+<option value="entre-rios/aldea-san-antonio.html" style="color: darkred;">
+    ✘ | aldea san antonio
+</option>
+
 <option value="entre-rios/aldea-san-francisco.html" style="color: darkred;">
     ✘ | aldea san francisco
-</option>
-
-<option value="entre-rios/aldea-spatzenkutter.html" style="color: darkred;">
-    ✘ | aldea spatzenkutter
-</option>
-
-<option value="entre-rios/aldea-valle-maria.html" style="color: darkred;">
-    ✘ | aldea valle maría
-</option>
-
-<option value="entre-rios/colonia-ensayo.html" style="color: darkred;">
-    ✘ | colonia ensayo
-</option>
-
-<option value="entre-rios/diamante.html" style="color: darkred;">
-    ✘ | diamante
-</option>
-
-<option value="entre-rios/estacion-camps.html" style="color: darkred;">
-    ✘ | estación camps
-</option>
-
-<option value="entre-rios/general-alvear.html" style="color: darkred;">
-    ✘ | general alvear
-</option>
-
-<option value="entre-rios/general-racedo-el-carmen.html" style="color: darkred;">
-    ✘ | general racedo (el carmen)
-</option>
-
-<option value="entre-rios/general-ramirez.html" style="color: darkred;">
-    ✘ | general ramírez
-</option>
-
-<option value="entre-rios/la-juanita.html" style="color: darkred;">
-    ✘ | la juanita
-</option>
-
-<option value="entre-rios/las-jaulas.html" style="color: darkred;">
-    ✘ | las jaulas
-</option>
-
-<option value="entre-rios/paraje-la-virgen.html" style="color: darkred;">
-    ✘ | paraje la virgen
-</option>
-
-<option value="entre-rios/puerto-las-cuevas.html" style="color: darkred;">
-    ✘ | puerto las cuevas
-</option>
-
-<option value="entre-rios/villa-libertador-san-martin.html" style="color: darkred;">
-    ✘ | villa libertador san martín
-</option>
-
-<option value="entre-rios/chajari.html" style="color: darkred;">
-    ✘ | chajarí
-</option>
-
-<option value="entre-rios/colonia-alemana.html" style="color: darkred;">
-    ✘ | colonia alemana
-</option>
-
-<option value="entre-rios/colonia-pena.html" style="color: darkred;">
-    ✘ | colonia peña
-</option>
-
-<option value="entre-rios/federacion.html" style="color: darkred;">
-    ✘ | federación
-</option>
-
-<option value="entre-rios/los-conquistadores.html" style="color: darkred;">
-    ✘ | los conquistadores
-</option>
-
-<option value="entre-rios/san-jaime-de-la-frontera.html" style="color: darkred;">
-    ✘ | san jaime de la frontera
-</option>
-
-<option value="entre-rios/san-pedro.html" style="color: darkred;">
-    ✘ | san pedro
-</option>
-
-<option value="entre-rios/san-ramon.html" style="color: darkred;">
-    ✘ | san ramón
-</option>
-
-<option value="entre-rios/santa-ana.html" style="color: darkred;">
-    ✘ | santa ana
-</option>
-
-<option value="entre-rios/villa-del-rosario.html" style="color: darkred;">
-    ✘ | villa del rosario
-</option>
-
-<option value="entre-rios/conscripto-bernardi.html" style="color: darkred;">
-    ✘ | conscripto bernardi
 </option>
 
 <option value="entre-rios/aldea-san-isidro-el-cimarron.html" style="color: darkred;">
     ✘ | aldea san isidro (el cimarrón)
 </option>
 
-<option value="entre-rios/federal.html" style="color: darkred;">
-    ✘ | federal
-</option>
-
-<option value="entre-rios/nueva-vizcaya.html" style="color: darkred;">
-    ✘ | nueva vizcaya
-</option>
-
-<option value="entre-rios/sauce-de-luna.html" style="color: darkred;">
-    ✘ | sauce de luna
-</option>
-
-<option value="entre-rios/san-jose-de-feliciano.html" style="color: darkred;">
-    ✘ | san josé de feliciano
-</option>
-
-<option value="entre-rios/san-victor.html" style="color: darkred;">
-    ✘ | san víctor
-</option>
-
-<option value="entre-rios/aldea-asuncion.html" style="color: darkred;">
-    ✘ | aldea asunción
-</option>
-
-<option value="entre-rios/estacion-lazo.html" style="color: darkred;">
-    ✘ | estación lazo
-</option>
-
-<option value="entre-rios/general-galarza.html" style="color: darkred;">
-    ✘ | general galarza
-</option>
-
-<option value="entre-rios/gualeguay.html" style="color: darkred;">
-    ✘ | gualeguay
-</option>
-
-<option value="entre-rios/puerto-ruiz.html" style="color: darkred;">
-    ✘ | puerto ruiz
-</option>
-
-<option value="entre-rios/aldea-san-antonio.html" style="color: darkred;">
-    ✘ | aldea san antonio
-</option>
-
 <option value="entre-rios/aldea-san-juan.html" style="color: darkred;">
     ✘ | aldea san juan
-</option>
-
-<option value="entre-rios/enrique-carbo.html" style="color: darkred;">
-    ✘ | enrique carbó
-</option>
-
-<option value="entre-rios/estacion-escrina.html" style="color: darkred;">
-    ✘ | estación escriña
-</option>
-
-<option value="entre-rios/faustino-m-parera.html" style="color: darkred;">
-    ✘ | faustino m. parera
-</option>
-
-<option value="entre-rios/general-almada.html" style="color: darkred;">
-    ✘ | general almada
-</option>
-
-<option value="entre-rios/gilbert.html" style="color: darkred;">
-    ✘ | gilbert
-</option>
-
-<option value="entre-rios/gualeguaychu.html" style="color: darkred;">
-    ✘ | gualeguaychú
-</option>
-
-<option value="entre-rios/irazusta.html" style="color: darkred;">
-    ✘ | irazusta
-</option>
-
-<option value="entre-rios/larroque.html" style="color: darkred;">
-    ✘ | larroque
-</option>
-
-<option value="entre-rios/pastor-britos.html" style="color: darkred;">
-    ✘ | pastor britos
-</option>
-
-<option value="entre-rios/pueblo-general-belgrano.html" style="color: darkred;">
-    ✘ | pueblo general belgrano
-</option>
-
-<option value="entre-rios/urdinarrain.html" style="color: darkred;">
-    ✘ | urdinarrain
-</option>
-
-<option value="entre-rios/ceibas.html" style="color: darkred;">
-    ✘ | ceibas
-</option>
-
-<option value="entre-rios/ibicuy.html" style="color: darkred;">
-    ✘ | ibicuy
-</option>
-
-<option value="entre-rios/medanos.html" style="color: darkred;">
-    ✘ | médanos
-</option>
-
-<option value="entre-rios/villa-paranacito.html" style="color: darkred;">
-    ✘ | villa paranacito
-</option>
-
-<option value="entre-rios/alcaraz.html" style="color: darkred;">
-    ✘ | alcaraz
-</option>
-
-<option value="entre-rios/bovril.html" style="color: darkred;">
-    ✘ | bovril
-</option>
-
-<option value="entre-rios/colonia-avigdor.html" style="color: darkred;">
-    ✘ | colonia avigdor
-</option>
-
-<option value="entre-rios/el-solar.html" style="color: darkred;">
-    ✘ | el solar
-</option>
-
-<option value="entre-rios/la-paz.html" style="color: darkred;">
-    ✘ | la paz
-</option>
-
-<option value="entre-rios/piedras-blancas.html" style="color: darkred;">
-    ✘ | piedras blancas
-</option>
-
-<option value="entre-rios/san-gustavo.html" style="color: darkred;">
-    ✘ | san gustavo
-</option>
-
-<option value="entre-rios/santa-elena.html" style="color: darkred;">
-    ✘ | santa elena
-</option>
-
-<option value="entre-rios/sir-leonard.html" style="color: darkred;">
-    ✘ | sir leonard
-</option>
-
-<option value="entre-rios/aranguren.html" style="color: darkred;">
-    ✘ | aranguren
-</option>
-
-<option value="entre-rios/betbeder.html" style="color: darkred;">
-    ✘ | betbeder
-</option>
-
-<option value="entre-rios/don-cristobal.html" style="color: darkred;">
-    ✘ | don cristóbal
-</option>
-
-<option value="entre-rios/febre.html" style="color: darkred;">
-    ✘ | febré
-</option>
-
-<option value="entre-rios/hernandez.html" style="color: darkred;">
-    ✘ | hernández
-</option>
-
-<option value="entre-rios/lucas-gonzalez.html" style="color: darkred;">
-    ✘ | lucas gonzález
-</option>
-
-<option value="entre-rios/nogoya.html" style="color: darkred;">
-    ✘ | nogoyá
-</option>
-
-<option value="entre-rios/xx-de-setiembre.html" style="color: darkred;">
-    ✘ | xx de setiembre
-</option>
-
-<option value="entre-rios/aldea-maria-luisa.html" style="color: darkred;">
-    ✘ | aldea maría luisa
 </option>
 
 <option value="entre-rios/aldea-san-rafael.html" style="color: darkred;">
@@ -2735,20 +2269,136 @@
     ✘ | aldea santa rosa
 </option>
 
+<option value="entre-rios/aldea-spatzenkutter.html" style="color: darkred;">
+    ✘ | aldea spatzenkutter
+</option>
+
+<option value="entre-rios/aldea-valle-maria.html" style="color: darkred;">
+    ✘ | aldea valle maría
+</option>
+
+<option value="entre-rios/altamirano-sur.html" style="color: darkred;">
+    ✘ | altamirano sur
+</option>
+
+<option value="entre-rios/antelo.html" style="color: darkred;">
+    ✘ | antelo
+</option>
+
+<option value="entre-rios/aranguren.html" style="color: darkred;">
+    ✘ | aranguren
+</option>
+
+<option value="entre-rios/arroyo-baru.html" style="color: darkred;">
+    ✘ | arroyo barú
+</option>
+
+<option value="entre-rios/basavilbaso.html" style="color: darkred;">
+    ✘ | basavilbaso
+</option>
+
+<option value="entre-rios/betbeder.html" style="color: darkred;">
+    ✘ | betbeder
+</option>
+
+<option value="entre-rios/bovril.html" style="color: darkred;">
+    ✘ | bovril
+</option>
+
+<option value="entre-rios/calabacilla.html" style="color: darkred;">
+    ✘ | calabacilla
+</option>
+
+<option value="entre-rios/caseros.html" style="color: darkred;">
+    ✘ | caseros
+</option>
+
+<option value="entre-rios/ceibas.html" style="color: darkred;">
+    ✘ | ceibas
+</option>
+
 <option value="entre-rios/cerrito.html" style="color: darkred;">
     ✘ | cerrito
+</option>
+
+<option value="entre-rios/chajari.html" style="color: darkred;">
+    ✘ | chajarí
+</option>
+
+<option value="entre-rios/clodomiro-ledesma.html" style="color: darkred;">
+    ✘ | clodomiro ledesma
+</option>
+
+<option value="entre-rios/colon.html" style="color: darkred;">
+    ✘ | colón
+</option>
+
+<option value="entre-rios/colonia-alemana.html" style="color: darkred;">
+    ✘ | colonia alemana
 </option>
 
 <option value="entre-rios/colonia-avellaneda.html" style="color: darkred;">
     ✘ | colonia avellaneda
 </option>
 
+<option value="entre-rios/colonia-avigdor.html" style="color: darkred;">
+    ✘ | colonia avigdor
+</option>
+
+<option value="entre-rios/colonia-ayui.html" style="color: darkred;">
+    ✘ | colonia ayuí
+</option>
+
 <option value="entre-rios/colonia-crespo.html" style="color: darkred;">
     ✘ | colonia crespo
 </option>
 
+<option value="entre-rios/colonia-elia.html" style="color: darkred;">
+    ✘ | colonia elía
+</option>
+
+<option value="entre-rios/colonia-ensayo.html" style="color: darkred;">
+    ✘ | colonia ensayo
+</option>
+
+<option value="entre-rios/colonia-general-roca.html" style="color: darkred;">
+    ✘ | colonia general roca
+</option>
+
+<option value="entre-rios/colonia-hugues.html" style="color: darkred;">
+    ✘ | colonia hugues
+</option>
+
+<option value="entre-rios/colonia-pena.html" style="color: darkred;">
+    ✘ | colonia peña
+</option>
+
+<option value="entre-rios/concepcion-del-uruguay.html" style="color: darkred;">
+    ✘ | concepción del uruguay
+</option>
+
+<option value="entre-rios/concordia.html" style="color: darkred;">
+    ✘ | concordia
+</option>
+
+<option value="entre-rios/conscripto-bernardi.html" style="color: darkred;">
+    ✘ | conscripto bernardi
+</option>
+
 <option value="entre-rios/crespo.html" style="color: darkred;">
     ✘ | crespo
+</option>
+
+<option value="entre-rios/diamante.html" style="color: darkred;">
+    ✘ | diamante
+</option>
+
+<option value="entre-rios/don-cristobal.html" style="color: darkred;">
+    ✘ | don cristóbal
+</option>
+
+<option value="entre-rios/durazno.html" style="color: darkred;">
+    ✘ | durazno
 </option>
 
 <option value="entre-rios/el-palenque.html" style="color: darkred;">
@@ -2763,108 +2413,88 @@
     ✘ | el ramblón
 </option>
 
-<option value="entre-rios/hasenkamp.html" style="color: darkred;">
-    ✘ | hasenkamp
+<option value="entre-rios/el-solar.html" style="color: darkred;">
+    ✘ | el solar
 </option>
 
-<option value="entre-rios/hernandarias.html" style="color: darkred;">
-    ✘ | hernandarias
+<option value="entre-rios/enrique-carbo.html" style="color: darkred;">
+    ✘ | enrique carbó
 </option>
 
-<option value="entre-rios/la-picada.html" style="color: darkred;">
-    ✘ | la picada
+<option value="entre-rios/estacion-arroyo-cle.html" style="color: darkred;">
+    ✘ | estación arroyo clé
 </option>
 
-<option value="entre-rios/las-tunas.html" style="color: darkred;">
-    ✘ | las tunas
+<option value="entre-rios/estacion-camps.html" style="color: darkred;">
+    ✘ | estación camps
 </option>
 
-<option value="entre-rios/maria-grande.html" style="color: darkred;">
-    ✘ | maría grande
+<option value="entre-rios/estacion-escrina.html" style="color: darkred;">
+    ✘ | estación escriña
 </option>
 
-<option value="entre-rios/oro-verde.html" style="color: darkred;">
-    ✘ | oro verde
+<option value="entre-rios/estacion-lazo.html" style="color: darkred;">
+    ✘ | estación lazo
 </option>
 
-<option value="entre-rios/parana.html" style="color: darkred;">
-    ✘ | paraná
+<option value="entre-rios/estacion-raices.html" style="color: darkred;">
+    ✘ | estación raíces
 </option>
 
-<option value="entre-rios/pueblo-bellocq-las-garzas.html" style="color: darkred;">
-    ✘ | pueblo bellocq (las garzas)
+<option value="entre-rios/estacion-yerua.html" style="color: darkred;">
+    ✘ | estación yeruá
 </option>
 
-<option value="entre-rios/pueblo-brugo.html" style="color: darkred;">
-    ✘ | pueblo brugo
+<option value="entre-rios/estacion-yuqueri.html" style="color: darkred;">
+    ✘ | estación yuquerí
 </option>
 
-<option value="entre-rios/pueblo-general-san-martin.html" style="color: darkred;">
-    ✘ | pueblo general san martín
+<option value="entre-rios/estancia-grande.html" style="color: darkred;">
+    ✘ | estancia grande
 </option>
 
-<option value="entre-rios/san-benito.html" style="color: darkred;">
-    ✘ | san benito
+<option value="entre-rios/faustino-m-parera.html" style="color: darkred;">
+    ✘ | faustino m. parera
 </option>
 
-<option value="entre-rios/sauce-montrull.html" style="color: darkred;">
-    ✘ | sauce montrull
+<option value="entre-rios/febre.html" style="color: darkred;">
+    ✘ | febré
 </option>
 
-<option value="entre-rios/sauce-pinto.html" style="color: darkred;">
-    ✘ | sauce pinto
+<option value="entre-rios/federacion.html" style="color: darkred;">
+    ✘ | federación
 </option>
 
-<option value="entre-rios/segui.html" style="color: darkred;">
-    ✘ | seguí
+<option value="entre-rios/federal.html" style="color: darkred;">
+    ✘ | federal
 </option>
 
-<option value="entre-rios/sosa.html" style="color: darkred;">
-    ✘ | sosa
+<option value="entre-rios/general-almada.html" style="color: darkred;">
+    ✘ | general almada
 </option>
 
-<option value="entre-rios/tabossi.html" style="color: darkred;">
-    ✘ | tabossi
-</option>
-
-<option value="entre-rios/tezanos-pinto.html" style="color: darkred;">
-    ✘ | tezanos pinto
-</option>
-
-<option value="entre-rios/viale.html" style="color: darkred;">
-    ✘ | viale
-</option>
-
-<option value="entre-rios/villa-fontana.html" style="color: darkred;">
-    ✘ | villa fontana
-</option>
-
-<option value="entre-rios/villa-gdor-luis-f-etchevehere.html" style="color: darkred;">
-    ✘ | villa gdor. luis f. etchevehere
-</option>
-
-<option value="entre-rios/villa-urquiza.html" style="color: darkred;">
-    ✘ | villa urquiza
+<option value="entre-rios/general-alvear.html" style="color: darkred;">
+    ✘ | general alvear
 </option>
 
 <option value="entre-rios/general-campos.html" style="color: darkred;">
     ✘ | general campos
 </option>
 
-<option value="entre-rios/san-salvador.html" style="color: darkred;">
-    ✘ | san salvador
+<option value="entre-rios/general-galarza.html" style="color: darkred;">
+    ✘ | general galarza
 </option>
 
-<option value="entre-rios/altamirano-sur.html" style="color: darkred;">
-    ✘ | altamirano sur
+<option value="entre-rios/general-racedo-el-carmen.html" style="color: darkred;">
+    ✘ | general racedo (el carmen)
 </option>
 
-<option value="entre-rios/durazno.html" style="color: darkred;">
-    ✘ | durazno
+<option value="entre-rios/general-ramirez.html" style="color: darkred;">
+    ✘ | general ramírez
 </option>
 
-<option value="entre-rios/estacion-arroyo-cle.html" style="color: darkred;">
-    ✘ | estación arroyo clé
+<option value="entre-rios/gilbert.html" style="color: darkred;">
+    ✘ | gilbert
 </option>
 
 <option value="entre-rios/gobernador-echague.html" style="color: darkred;">
@@ -2879,68 +2509,348 @@
     ✘ | gobernador solá
 </option>
 
+<option value="entre-rios/gualeguay.html" style="color: darkred;">
+    ✘ | gualeguay
+</option>
+
+<option value="entre-rios/gualeguaychu.html" style="color: darkred;">
+    ✘ | gualeguaychú
+</option>
+
 <option value="entre-rios/guardamonte.html" style="color: darkred;">
     ✘ | guardamonte
 </option>
 
-<option value="entre-rios/las-guachas.html" style="color: darkred;">
-    ✘ | las guachas
+<option value="entre-rios/hambis.html" style="color: darkred;">
+    ✘ | hambis
 </option>
 
-<option value="entre-rios/macia.html" style="color: darkred;">
-    ✘ | maciá
+<option value="entre-rios/hasenkamp.html" style="color: darkred;">
+    ✘ | hasenkamp
 </option>
 
-<option value="entre-rios/rosario-del-tala.html" style="color: darkred;">
-    ✘ | rosario del tala
+<option value="entre-rios/hernandarias.html" style="color: darkred;">
+    ✘ | hernandarias
 </option>
 
-<option value="entre-rios/basavilbaso.html" style="color: darkred;">
-    ✘ | basavilbaso
-</option>
-
-<option value="entre-rios/caseros.html" style="color: darkred;">
-    ✘ | caseros
-</option>
-
-<option value="entre-rios/colonia-elia.html" style="color: darkred;">
-    ✘ | colonia elía
-</option>
-
-<option value="entre-rios/concepcion-del-uruguay.html" style="color: darkred;">
-    ✘ | concepción del uruguay
+<option value="entre-rios/hernandez.html" style="color: darkred;">
+    ✘ | hernández
 </option>
 
 <option value="entre-rios/herrera.html" style="color: darkred;">
     ✘ | herrera
 </option>
 
+<option value="entre-rios/hocker.html" style="color: darkred;">
+    ✘ | hocker
+</option>
+
+<option value="entre-rios/ibicuy.html" style="color: darkred;">
+    ✘ | ibicuy
+</option>
+
+<option value="entre-rios/ingeniero-miguel-sajaroff.html" style="color: darkred;">
+    ✘ | ingeniero miguel sajaroff
+</option>
+
+<option value="entre-rios/irazusta.html" style="color: darkred;">
+    ✘ | irazusta
+</option>
+
+<option value="entre-rios/jubileo.html" style="color: darkred;">
+    ✘ | jubileo
+</option>
+
+<option value="entre-rios/la-clarita.html" style="color: darkred;">
+    ✘ | la clarita
+</option>
+
+<option value="entre-rios/la-criolla.html" style="color: darkred;">
+    ✘ | la criolla
+</option>
+
+<option value="entre-rios/la-juanita.html" style="color: darkred;">
+    ✘ | la juanita
+</option>
+
+<option value="entre-rios/la-paz.html" style="color: darkred;">
+    ✘ | la paz
+</option>
+
+<option value="entre-rios/la-picada.html" style="color: darkred;">
+    ✘ | la picada
+</option>
+
+<option value="entre-rios/larroque.html" style="color: darkred;">
+    ✘ | larroque
+</option>
+
+<option value="entre-rios/las-guachas.html" style="color: darkred;">
+    ✘ | las guachas
+</option>
+
+<option value="entre-rios/las-jaulas.html" style="color: darkred;">
+    ✘ | las jaulas
+</option>
+
 <option value="entre-rios/las-moscas.html" style="color: darkred;">
     ✘ | las moscas
+</option>
+
+<option value="entre-rios/las-tunas.html" style="color: darkred;">
+    ✘ | las tunas
 </option>
 
 <option value="entre-rios/libaros.html" style="color: darkred;">
     ✘ | líbaros
 </option>
 
-<option value="entre-rios/1o-de-mayo.html" style="color: darkred;">
-    ✘ | 1º de mayo
+<option value="entre-rios/los-charruas.html" style="color: darkred;">
+    ✘ | los charrúas
+</option>
+
+<option value="entre-rios/los-conquistadores.html" style="color: darkred;">
+    ✘ | los conquistadores
+</option>
+
+<option value="entre-rios/lucas-gonzalez.html" style="color: darkred;">
+    ✘ | lucas gonzález
+</option>
+
+<option value="entre-rios/macia.html" style="color: darkred;">
+    ✘ | maciá
+</option>
+
+<option value="entre-rios/maria-grande.html" style="color: darkred;">
+    ✘ | maría grande
+</option>
+
+<option value="entre-rios/medanos.html" style="color: darkred;">
+    ✘ | médanos
+</option>
+
+<option value="entre-rios/molino-doll.html" style="color: darkred;">
+    ✘ | molino doll
+</option>
+
+<option value="entre-rios/nogoya.html" style="color: darkred;">
+    ✘ | nogoyá
+</option>
+
+<option value="entre-rios/nueva-escocia.html" style="color: darkred;">
+    ✘ | nueva escocia
+</option>
+
+<option value="entre-rios/nueva-vizcaya.html" style="color: darkred;">
+    ✘ | nueva vizcaya
+</option>
+
+<option value="entre-rios/oro-verde.html" style="color: darkred;">
+    ✘ | oro verde
+</option>
+
+<option value="entre-rios/paraje-la-virgen.html" style="color: darkred;">
+    ✘ | paraje la virgen
+</option>
+
+<option value="entre-rios/parana.html" style="color: darkred;">
+    ✘ | paraná
+</option>
+
+<option value="entre-rios/paso-de-la-laguna.html" style="color: darkred;">
+    ✘ | paso de la laguna
+</option>
+
+<option value="entre-rios/pastor-britos.html" style="color: darkred;">
+    ✘ | pastor britos
+</option>
+
+<option value="entre-rios/pedernal.html" style="color: darkred;">
+    ✘ | pedernal
+</option>
+
+<option value="entre-rios/piedras-blancas.html" style="color: darkred;">
+    ✘ | piedras blancas
 </option>
 
 <option value="entre-rios/pronunciamiento.html" style="color: darkred;">
     ✘ | pronunciamiento
 </option>
 
+<option value="entre-rios/pueblo-bellocq-las-garzas.html" style="color: darkred;">
+    ✘ | pueblo bellocq (las garzas)
+</option>
+
+<option value="entre-rios/pueblo-brugo.html" style="color: darkred;">
+    ✘ | pueblo brugo
+</option>
+
+<option value="entre-rios/pueblo-cazes.html" style="color: darkred;">
+    ✘ | pueblo cazes
+</option>
+
+<option value="entre-rios/pueblo-general-belgrano.html" style="color: darkred;">
+    ✘ | pueblo general belgrano
+</option>
+
+<option value="entre-rios/pueblo-general-san-martin.html" style="color: darkred;">
+    ✘ | pueblo general san martín
+</option>
+
+<option value="entre-rios/pueblo-liebig-s.html" style="color: darkred;">
+    ✘ | pueblo liebig's
+</option>
+
+<option value="entre-rios/puerto-las-cuevas.html" style="color: darkred;">
+    ✘ | puerto las cuevas
+</option>
+
+<option value="entre-rios/puerto-ruiz.html" style="color: darkred;">
+    ✘ | puerto ruiz
+</option>
+
+<option value="entre-rios/puerto-yerua.html" style="color: darkred;">
+    ✘ | puerto yeruá
+</option>
+
 <option value="entre-rios/rocamora.html" style="color: darkred;">
     ✘ | rocamora
+</option>
+
+<option value="entre-rios/rosario-del-tala.html" style="color: darkred;">
+    ✘ | rosario del tala
+</option>
+
+<option value="entre-rios/san-benito.html" style="color: darkred;">
+    ✘ | san benito
+</option>
+
+<option value="entre-rios/san-gustavo.html" style="color: darkred;">
+    ✘ | san gustavo
+</option>
+
+<option value="entre-rios/san-jaime-de-la-frontera.html" style="color: darkred;">
+    ✘ | san jaime de la frontera
+</option>
+
+<option value="entre-rios/san-jose.html" style="color: darkred;">
+    ✘ | san josé
+</option>
+
+<option value="entre-rios/san-jose-de-feliciano.html" style="color: darkred;">
+    ✘ | san josé de feliciano
+</option>
+
+<option value="entre-rios/san-pedro.html" style="color: darkred;">
+    ✘ | san pedro
+</option>
+
+<option value="entre-rios/san-ramon.html" style="color: darkred;">
+    ✘ | san ramón
+</option>
+
+<option value="entre-rios/san-salvador.html" style="color: darkred;">
+    ✘ | san salvador
+</option>
+
+<option value="entre-rios/san-victor.html" style="color: darkred;">
+    ✘ | san víctor
+</option>
+
+<option value="entre-rios/santa-ana.html" style="color: darkred;">
+    ✘ | santa ana
 </option>
 
 <option value="entre-rios/santa-anita.html" style="color: darkred;">
     ✘ | santa anita
 </option>
 
+<option value="entre-rios/santa-elena.html" style="color: darkred;">
+    ✘ | santa elena
+</option>
+
+<option value="entre-rios/sauce-de-luna.html" style="color: darkred;">
+    ✘ | sauce de luna
+</option>
+
+<option value="entre-rios/sauce-montrull.html" style="color: darkred;">
+    ✘ | sauce montrull
+</option>
+
+<option value="entre-rios/sauce-pinto.html" style="color: darkred;">
+    ✘ | sauce pinto
+</option>
+
+<option value="entre-rios/segui.html" style="color: darkred;">
+    ✘ | seguí
+</option>
+
+<option value="entre-rios/sir-leonard.html" style="color: darkred;">
+    ✘ | sir leonard
+</option>
+
+<option value="entre-rios/sosa.html" style="color: darkred;">
+    ✘ | sosa
+</option>
+
+<option value="entre-rios/tabossi.html" style="color: darkred;">
+    ✘ | tabossi
+</option>
+
+<option value="entre-rios/tezanos-pinto.html" style="color: darkred;">
+    ✘ | tezanos pinto
+</option>
+
+<option value="entre-rios/ubajay.html" style="color: darkred;">
+    ✘ | ubajay
+</option>
+
+<option value="entre-rios/urdinarrain.html" style="color: darkred;">
+    ✘ | urdinarrain
+</option>
+
+<option value="entre-rios/viale.html" style="color: darkred;">
+    ✘ | viale
+</option>
+
+<option value="entre-rios/victoria.html" style="color: darkred;">
+    ✘ | victoria
+</option>
+
+<option value="entre-rios/villa-clara.html" style="color: darkred;">
+    ✘ | villa clara
+</option>
+
+<option value="entre-rios/villa-del-rosario.html" style="color: darkred;">
+    ✘ | villa del rosario
+</option>
+
+<option value="entre-rios/villa-dominguez.html" style="color: darkred;">
+    ✘ | villa domínguez
+</option>
+
+<option value="entre-rios/villa-elisa.html" style="color: darkred;">
+    ✘ | villa elisa
+</option>
+
+<option value="entre-rios/villa-fontana.html" style="color: darkred;">
+    ✘ | villa fontana
+</option>
+
+<option value="entre-rios/villa-gdor-luis-f-etchevehere.html" style="color: darkred;">
+    ✘ | villa gdor. luis f. etchevehere
+</option>
+
+<option value="entre-rios/villa-libertador-san-martin.html" style="color: darkred;">
+    ✘ | villa libertador san martín
+</option>
+
 <option value="entre-rios/villa-mantero.html" style="color: darkred;">
     ✘ | villa mantero
+</option>
+
+<option value="entre-rios/villa-paranacito.html" style="color: darkred;">
+    ✘ | villa paranacito
 </option>
 
 <option value="entre-rios/villa-san-justo.html" style="color: darkred;">
@@ -2951,44 +2861,16 @@
     ✘ | villa san marcial (est. gobernador urquiza)
 </option>
 
-<option value="entre-rios/antelo.html" style="color: darkred;">
-    ✘ | antelo
-</option>
-
-<option value="entre-rios/molino-doll.html" style="color: darkred;">
-    ✘ | molino doll
-</option>
-
-<option value="entre-rios/victoria.html" style="color: darkred;">
-    ✘ | victoria
-</option>
-
-<option value="entre-rios/estacion-raices.html" style="color: darkred;">
-    ✘ | estación raíces
-</option>
-
-<option value="entre-rios/ingeniero-miguel-sajaroff.html" style="color: darkred;">
-    ✘ | ingeniero miguel sajaroff
-</option>
-
-<option value="entre-rios/jubileo.html" style="color: darkred;">
-    ✘ | jubileo
-</option>
-
-<option value="entre-rios/paso-de-la-laguna.html" style="color: darkred;">
-    ✘ | paso de la laguna
-</option>
-
-<option value="entre-rios/villa-clara.html" style="color: darkred;">
-    ✘ | villa clara
-</option>
-
-<option value="entre-rios/villa-dominguez.html" style="color: darkred;">
-    ✘ | villa domínguez
+<option value="entre-rios/villa-urquiza.html" style="color: darkred;">
+    ✘ | villa urquiza
 </option>
 
 <option value="entre-rios/villaguay.html" style="color: darkred;">
     ✘ | villaguay
+</option>
+
+<option value="entre-rios/xx-de-setiembre.html" style="color: darkred;">
+    ✘ | xx de setiembre
 </option>
 
 
@@ -3000,7 +2882,7 @@
         <a href="terminos-y-condiciones.html">Términos y Condiciones</a>.
       </div>
       `;
-    abrirModal(html);
+    abrirModal(html, "buscar");
 
       inicializarSelect2("#localidades", "Buscar localidad");
   }

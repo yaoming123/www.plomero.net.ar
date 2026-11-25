@@ -38,14 +38,29 @@
       </script>
 
 
-<script>(function (w, d, s, l, i) {
-        w[l] = w[l] || []; w[l].push({
-            'gtm.start':
-                new Date().getTime(), event: 'gtm.js'
-        }); var f = d.getElementsByTagName(s)[0],
-            j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
-                'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
-    })(window, document, 'script', 'dataLayer', 'GTM-W4NSZ7JP');</script>
+<script>
+    (function (w, d) {
+        var propio = 'plomero.net.ar', clave = 'analitica', eleccion = null;
+        try {
+            var pedido = new URLSearchParams(location.search).get(clave);
+            if (pedido === 'si' || pedido === 'no') localStorage.setItem(clave, pedido);
+            else if (pedido === 'auto') localStorage.removeItem(clave);
+            eleccion = localStorage.getItem(clave);
+        } catch (e) { /* sin localStorage: se decide solo por el dominio */ }
+
+        var enDominio = location.hostname.replace(/^www\./, '') === propio;
+        var medir = eleccion ? eleccion === 'si' : enDominio;
+        w.__analitica = { medir: medir, por: eleccion ? 'eleccion_' + eleccion : (enDominio ? 'dominio' : 'otro_dominio') };
+        if (!medir) return;
+
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+        var s = d.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtm.js?id=GTM-W4NSZ7JP';
+        d.head.appendChild(s);
+    })(window, document);
+</script>
 
 </head>
 
@@ -184,8 +199,10 @@ más.</p>
     abortController = null;
   }
 
-  function abrirModal(html) {
+  // tipo: lo lee tracking.js (buscar, cargando, resultados, sin_resultados, error)
+  function abrirModal(html, tipo) {
     modalContent.innerHTML = html;
+    modal.dataset.tipo = tipo || "otro";
     modal.classList.add("active");
   }
 
@@ -212,14 +229,14 @@ más.</p>
 
       <p>O probá con una distancia máxima más alta.</p>
       
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar</button>
 
       <div class="modal-legal">
         Al usar el buscador, confirmas que aceptas 
         <a href="terminos-y-condiciones.html">Términos y Condiciones</a>.
       </div>
     `;
-    abrirModal(html);
+    abrirModal(html, "sin_resultados");
   }
 
   function mostrarModalResultados(zonas) {
@@ -247,23 +264,23 @@ más.</p>
 
     html += `
       </ul>
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar</button>
       <div class="modal-legal">
         Al contactar a un proveedor, confirmas que aceptas 
         <a href="terminos-y-condiciones.html">Términos y Condiciones</a>.
       </div>
     `;
 
-    abrirModal(html);
+    abrirModal(html, "resultados");
   }
 
   function mostrarModalError(mensaje) {
     const html = `
       <h1 id="modal-title">📍 Error en la Búsqueda</h1>
       <p><strong>${mensaje}</strong></p>
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar e Intentar de Nuevo</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar e Intentar de Nuevo</button>
     `;
-    abrirModal(html);
+    abrirModal(html, "error");
   }
 
   function mostrarModalBuscarProveedor() {
@@ -277,14 +294,14 @@ más.</p>
       <input type="number" id="umbral-km" value="${ultimoUmbralKm}" step="1" min="0" style="width: 100%; text-align: center;">
       <p>Si hay proveedores aparecerán del más cercano al más lejano.</p>
       <button onclick="buscarPorUbicacion();" class="button button1">🔍 Buscar proveedor de servicios</button>
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar</button>
      
       <div class="modal-legal">
         Al contactar a un proveedor, confirmas que aceptas 
         <a href="terminos-y-condiciones.html">Términos y Condiciones</a>.
       </div>
       `;
-    abrirModal(html);
+    abrirModal(html, "buscar");
   }
 
   function compartirSeccion() {
@@ -359,7 +376,7 @@ más.</p>
           <p>Buscando proveedores cercanos...</p>
         </div>
         <div id="progress-bar"></div>
-      `);
+      `, "cargando");
 
       const posicion = await obtenerUbicacionConFallback();
       const userLat = posicion.coords.latitude;

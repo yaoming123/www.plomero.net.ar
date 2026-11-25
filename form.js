@@ -494,6 +494,7 @@ document.addEventListener('DOMContentLoaded', function () {
             conexion: conexion
         };
 
+        window.formEnviado = true;   // tracking.js: ya no es un abandono del formulario
         window.dataLayer = window.dataLayer || [];
         window.dataLayer.push(datosEvento);
     }

@@ -75,17 +75,30 @@
 </script>
 
 
-<script>(function (w, d, s, l, i) {
-        w[l] = w[l] || []; w[l].push({
-            'gtm.start':
-                new Date().getTime(), event: 'gtm.js'
-        }); var f = d.getElementsByTagName(s)[0],
-            j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
-                'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
-    })(window, document, 'script', 'dataLayer', 'GTM-W4NSZ7JP');</script>
+<script>
+    (function (w, d) {
+        var propio = 'plomero.net.ar', clave = 'analitica', eleccion = null;
+        try {
+            var pedido = new URLSearchParams(location.search).get(clave);
+            if (pedido === 'si' || pedido === 'no') localStorage.setItem(clave, pedido);
+            else if (pedido === 'auto') localStorage.removeItem(clave);
+            eleccion = localStorage.getItem(clave);
+        } catch (e) { /* sin localStorage: se decide solo por el dominio */ }
 
-    <link rel="stylesheet" href="votacion.css">
-    <script defer src="votacion.js"></script>
+        var enDominio = location.hostname.replace(/^www\./, '') === propio;
+        var medir = eleccion ? eleccion === 'si' : enDominio;
+        w.__analitica = { medir: medir, por: eleccion ? 'eleccion_' + eleccion : (enDominio ? 'dominio' : 'otro_dominio') };
+        if (!medir) return;
+
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+        var s = d.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtm.js?id=GTM-W4NSZ7JP';
+        d.head.appendChild(s);
+    })(window, document);
+</script>
+
 </head>
 
 <body>
@@ -121,7 +134,7 @@
             <a href="index.html">🗺️ Plomeros en Argentina</a>
         </li>
         <li>
-            <a onclick="mostrarModalBuscarProveedor()">🔍 Encontrar Plomeros</a>
+            <a data-medir="click_nav_buscar" onclick="mostrarModalBuscarProveedor()">🔍 Encontrar Plomeros</a>
         </li>
         <li>
             <a href="terminos-y-condiciones.html">📋 Términos y Condiciones</a>
@@ -332,6 +345,8 @@
         </div>
 
 </div>
+
+
         </div>
     </header>
 
@@ -811,7 +826,7 @@
                     ¿Ofrecés servicios de plomería?? <strong>¡Este espacio está disponible, anunciate aquí!</strong>
                 </p>
 
-                <form id="whatsapp-form" novalidate>
+                <form id="whatsapp-form" novalidate data-clarity-mask="true">
 
                     <input id="section" name="section" value="https://www.plomero.net.ar/santa-fe.html" readonly
                         style="display:none;">
@@ -1689,7 +1704,9 @@
         else if (s.custom)      { badge.className = 'svc-badge custom';  badge.textContent = '➕ Nuevo';         badge.style.display = ''; }
         else if (isEdited(s))   { badge.className = 'svc-badge edited';  badge.textContent = '✏️ Editado';       badge.style.display = ''; }
         else                    { badge.style.display = 'none'; }
-        card.querySelector('.btn-toggle').textContent = s.removed ? '↩️ Mantener' : '🗑️ Eliminar';
+        const toggle = card.querySelector('.btn-toggle');
+        toggle.textContent = s.removed ? '↩️ Mantener' : '🗑️ Eliminar';
+        toggle.dataset.accion = s.removed ? 'mantener' : 'eliminar';   // lo lee tracking.js
         const restore = card.querySelector('.btn-restore');
         if (restore) restore.style.display = isEdited(s) && !s.removed ? '' : 'none';
     }
@@ -1875,54 +1892,6 @@
 </footer>
 
 
-<script>
-  // Copiar datos del proveedor
-  function copiarDatosProveedor() {
-    const nombre = document.getElementById('modal-nombre')?.textContent || 'No disponible';
-    const telefono = document.getElementById('modal-telefono')?.textContent || 'No disponible';
-    const ubicacion = document.getElementById('modal-ubicacion')?.textContent || 'No disponible';
-    const pagado = document.getElementById('modal-pagado')?.textContent || 'No disponible';
-
-    const datos = `Nombre: ${nombre}
-    Teléfono: ${telefono}
-    Ubicación: ${ubicacion}
-    Pagado por: ${pagado}
-    Fuente: plomero.net.ar`;
-
-    navigator.clipboard.writeText(datos).then(() => {
-      alert('✅ Datos copiados al portapapeles');
-    }).catch(() => {
-      alert('No se pudo copiar. Intenta nuevamente.');
-    });
-  }
-
-  // Descargar modal como imagen
-  function descargarModalImagen() {
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.8/dist/html2canvas-pro.min.js';
-    script.onload = function () {
-      const modalContent = document.getElementById('modal-content');
-      html2canvas(modalContent, {
-        backgroundColor: '#ffffff',
-        scale: 2,
-        allowTaint: true,
-        useCORS: true
-      }).then(canvas => {
-        const link = document.createElement('a');
-        const nombre = document.getElementById('modal-nombre')?.textContent || 'proveedor';
-        const fecha = new Date().toLocaleDateString('es-AR');
-        link.href = canvas.toDataURL('image/png');
-        link.download = `${nombre}_${fecha}.png`;
-        link.click();
-      }).catch(error => {
-        console.error('Error al descargar:', error);
-        alert('No se pudo descargar la imagen. Intenta nuevamente.');
-      });
-    };
-    document.head.appendChild(script);
-  }
-
-</script>
 <div id="modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
   <div class="modal-contenido">
     <img src="logo.png" class="animation_back_in_rigth" alt="logotipo" loading="lazy" style="width: 15rem; height: 15rem;">
@@ -1949,8 +1918,9 @@
     abortController = null;
   }
 
-  function abrirModal(html) {
+  function abrirModal(html, tipo) {
     modalContent.innerHTML = html;
+    modal.dataset.tipo = tipo || "otro";
     modal.classList.add("active");
   }
 
@@ -1971,14 +1941,14 @@
     `;
 
     if (url) {
-      html += `<button class="button" onclick="window.open('${url}', '_blank'); cerrarModal();">✅ Continuar</button>`;
+      html += `<button class="button" data-medir="contacto_confirmado" onclick="window.open('${url}', '_blank'); cerrarModal();">✅ Continuar</button>`;
     }
     
     html += `
-        <button class="button button-danger" onclick="cerrarModal();">❌ Cancelar</button>
+        <button class="button button-danger" data-medir="contacto_cancelado" data-cierre="cancelar" onclick="cerrarModal();">❌ Cancelar</button>
       </div>
             <div style="margin: 1.5rem 0;">
-        <a class="button" onclick="mostrarModalBuscarProveedor()">🔍 ¡Encontrar plomero!</a>
+        <a class="button" data-medir="click_buscar_modal" onclick="mostrarModalBuscarProveedor()">🔍 ¡Encontrar plomero!</a>
         <button class="button" onclick="compartirSeccion();">🗣️ Compartir a un plomero conocido</button>
       </div>
       <div class="modal-legal">
@@ -1987,97 +1957,9 @@
       </div>
     `;
 
-    abrirModal(html);
+    abrirModal(html, url ? "contacto" : "aviso");
   }
   
-  function mostrarModalAdvertenciaDemo(titulo, mensaje, url = null) {
-      let html = `       
-        <h1 id="modal-title">${titulo}</h1>
-        <p>${mensaje}</p>
-
-        <div class="disclosure-section" style="margin-top: 1.5rem; border: 1px solid #dadce0; border-radius: 8px;">
-          
-          <button class="disclosure-header expanded"
-            onclick="if(this.nextElementSibling){this.classList.toggle('expanded'); this.nextElementSibling.classList.toggle('expanded');}"
-            style="padding: 16px; background: #f8f9fa; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border: none; width: 100%; font-size: 14px; font-weight: 500; color: #202124;">
-            <span>ℹ️ Acerca del anunciante</span>
-            <span style="transition: transform 0.3s; display: inline-block;">▼</span>
-          </button>
-          
-          <div class="disclosure-content expanded" style="max-height: 1000px; overflow: hidden; background: white;">
-            <div style="padding: 16px; border-top: 1px solid #dadce0;">
-
-              <div style="display: grid; gap: 12px;">
-
-
-                <div
-                  style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
-                  <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Nombre del negocio</span>
-                  <span style="color: #202124; font-size: 13px;" id="modal-nombre">None</span>
-                </div>
-
-                <div
-                  style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
-                  <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Teléfono</span>
-                  <span style="color: #202124; font-size: 13px;" id="modal-telefono">None</span>
-                </div>
-
-                <div style="display: flex; justify-content: space-between; padding: 8px 0;">
-                  <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Sección</span>
-                  
-                  <span style="color: #202124; font-size: 13px; text-transform: capitalize;" id="modal-ubicacion">
-                  santa fe
-                  </span>
-              
-                  </div>
-
-                <div style="display: flex; justify-content: space-between; padding: 8px 0;">
-                  <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Pagado por</span>
-                  <span style="color: #202124; font-size: 13px; text-transform: capitalize;" id="modal-pagado">None</span>
-                </div>
-
-                <div style="display: flex; justify-content: space-between; padding: 8px 0;">
-                  <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Anunciando desde</span>
-                  <span style="color: #202124; font-size: 13px;" id="modal-pagado">None</span>
-                </div>
-
-              </div>
-
-            </div>
-          </div>
-        </div>        
-
-        <div style="margin-top: 1.5rem;">
-      `;
-
-      if (url) {
-        html += `<button class="button" onclick="window.open('${url}', '_blank'); cerrarModal();">✅ Continuar</button>`;
-      }
-      
-      html += `
-          <button class="button button-danger" onclick="cerrarModal();">❌ Cancelar</button>
-        </div>
-
-                <div style="display: flex; justify-content: space-between; padding: 8px 0;">
-          <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Fecha y hora</span>
-          <span style="color: #202124; font-size: 13px;" id="modal-pagado">
-            <p id="reloj"></p>
-          </span>
-        </div>
-
-        <a onclick="copiarDatosProveedor()" href="#" style="font-size: 1rem; float: inline-start;">📋 Copiar al portapapeles esta información</a><br>
-        <a onclick="descargarModalImagen()" href="#" style="font-size: 1rem; float: inline-start;">⬇️ Descargar imagen de esta información</a><br>
-        <a href="#" style="font-size:1rem; color:#d93025; float: inline-start;">⚠️ Reportar problema con este anunciante</a>
-        <div class="modal-legal">
-          Al contactar, confirmas que aceptas 
-          <a href="terminos-y-condiciones.html">Términos y Condiciones</a>.
-        </div>
-      `;
-
-      abrirModal(html);
-    }
-  
-
   
   function mostrarModalAdvertenciaformulario(mensaje, url = null) {
     let html = `
@@ -2087,7 +1969,7 @@
     `;
     
     html += `
-        <button class="button button-danger" onclick="cerrarModal();">❌ Cancelar</button>
+        <button class="button button-danger" data-cierre="cancelar" onclick="cerrarModal();">❌ Cancelar</button>
       </div>
       <div class="modal-legal">
         Al enviar el formulario, confirmas que has leído y aceptas 
@@ -2095,7 +1977,7 @@
       </div>
     `;
 
-    abrirModal(html);
+    abrirModal(html, "aviso");
   }
 
   
@@ -2112,14 +1994,14 @@
 
       <p>O probá con una distancia máxima más alta.</p>
       
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar</button>
 
       <div class="modal-legal">
         Al usar el buscador, confirmas que aceptas 
         <a href="terminos-y-condiciones.html">Términos y Condiciones</a>.
       </div>
     `;
-    abrirModal(html);
+    abrirModal(html, "sin_resultados");
   }
 
   
@@ -2148,14 +2030,14 @@
 
     html += `
       </ul>
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar</button>
       <div class="modal-legal">
         Al contactar a un proveedor, confirmas que aceptas 
         <a href="terminos-y-condiciones.html">Términos y Condiciones</a>.
       </div>
     `;
 
-    abrirModal(html);
+    abrirModal(html, "resultados");
   }
 
   
@@ -2163,9 +2045,9 @@
     const html = `
       <h1 id="modal-title">📍 Error en la Búsqueda</h1>
       <p><strong>${mensaje}</strong></p>
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar e Intentar de Nuevo</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar e Intentar de Nuevo</button>
     `;
-    abrirModal(html);
+    abrirModal(html, "error");
   }
 
   
@@ -2241,7 +2123,7 @@
           <p>Buscando proveedores cercanos...</p>
         </div>
         <div id="progress-bar"></div>
-      `);
+      `, "cargando");
 
       const posicion = await obtenerUbicacionConFallback();
       const userLat = posicion.coords.latitude;
@@ -2320,99 +2202,111 @@
       <input type="number" id="umbral-km" value="${ultimoUmbralKm}" step="1" min="0" style="width: 100%; text-align: center;">
       <p>Si hay proveedores aparecerán del más cercano al más lejano.</p>
       <button onclick="buscarPorUbicacion();" class="button button1">🔍 Buscar proveedor de servicios</button>
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar</button>
      
 
 <select id="localidades" onchange="window.location.href=this.value;" class="button button2" style="width:80%;background-color: var(--fondo);color: white;">
 <option value="">Seleccione una opción</option>
 
 
-<option value="santa-fe/armstrong.html" style="color: darkred;">
-    ✘ | armstrong
+<option value="santa-fe/aaron-castellanos.html" style="color: darkred;">
+    ✘ | aarón castellanos
 </option>
 
-<option value="santa-fe/bouquet.html" style="color: darkred;">
-    ✘ | bouquet
+<option value="santa-fe/acebal.html" style="color: darkred;">
+    ✘ | acébal
 </option>
 
-<option value="santa-fe/las-parejas.html" style="color: darkred;">
-    ✘ | las parejas
+<option value="santa-fe/aguara-grande.html" style="color: darkred;">
+    ✘ | aguará grande
 </option>
 
-<option value="santa-fe/las-rosas.html" style="color: darkred;">
-    ✘ | las rosas
+<option value="santa-fe/albarellos.html" style="color: darkred;">
+    ✘ | albarellos
 </option>
 
-<option value="santa-fe/montes-de-oca.html" style="color: darkred;">
-    ✘ | montes de oca
-</option>
-
-<option value="santa-fe/tortugas.html" style="color: darkred;">
-    ✘ | tortugas
-</option>
-
-<option value="santa-fe/arequito.html" style="color: darkred;">
-    ✘ | arequito
-</option>
-
-<option value="santa-fe/arteaga.html" style="color: darkred;">
-    ✘ | arteaga
-</option>
-
-<option value="santa-fe/beravebu.html" style="color: darkred;">
-    ✘ | beravebú
-</option>
-
-<option value="santa-fe/bigand.html" style="color: darkred;">
-    ✘ | bigand
-</option>
-
-<option value="santa-fe/casilda.html" style="color: darkred;">
-    ✘ | casilda
-</option>
-
-<option value="santa-fe/chabas.html" style="color: darkred;">
-    ✘ | chabas
-</option>
-
-<option value="santa-fe/chanar-ladeado.html" style="color: darkred;">
-    ✘ | chañar ladeado
-</option>
-
-<option value="santa-fe/godeken.html" style="color: darkred;">
-    ✘ | gödeken
-</option>
-
-<option value="santa-fe/los-molinos.html" style="color: darkred;">
-    ✘ | los molinos
-</option>
-
-<option value="santa-fe/los-nogales.html" style="color: darkred;">
-    ✘ | los nogales
-</option>
-
-<option value="santa-fe/los-quirquinchos.html" style="color: darkred;">
-    ✘ | los quirquinchos
-</option>
-
-<option value="santa-fe/san-jose-de-la-esquina.html" style="color: darkred;">
-    ✘ | san josé de la esquina
-</option>
-
-<option value="santa-fe/sanford.html" style="color: darkred;">
-    ✘ | sanford
-</option>
-
-<option value="santa-fe/villada.html" style="color: darkred;">
-    ✘ | villada
+<option value="santa-fe/alcorta.html" style="color: darkred;">
+    ✘ | alcorta
 </option>
 
 <option value="santa-fe/aldao.html" style="color: darkred;">
     ✘ | aldao
 </option>
 
+<option value="santa-fe/alejandra.html" style="color: darkred;">
+    ✘ | alejandra
+</option>
+
+<option value="santa-fe/alvarez.html" style="color: darkred;">
+    ✘ | álvarez
+</option>
+
+<option value="santa-fe/alvear.html" style="color: darkred;">
+    ✘ | alvear
+</option>
+
+<option value="santa-fe/ambrosetti.html" style="color: darkred;">
+    ✘ | ambrosetti
+</option>
+
+<option value="santa-fe/amenabar.html" style="color: darkred;">
+    ✘ | amenábar
+</option>
+
+<option value="santa-fe/angel-gallardo.html" style="color: darkred;">
+    ✘ | angel gallardo
+</option>
+
 <option value="santa-fe/angelica.html" style="color: darkred;">
     ✘ | angélica
+</option>
+
+<option value="santa-fe/angeloni.html" style="color: darkred;">
+    ✘ | angeloni
+</option>
+
+<option value="santa-fe/arbilla.html" style="color: darkred;">
+    ✘ | arbilla
+</option>
+
+<option value="santa-fe/arequito.html" style="color: darkred;">
+    ✘ | arequito
+</option>
+
+<option value="santa-fe/arminda.html" style="color: darkred;">
+    ✘ | arminda
+</option>
+
+<option value="santa-fe/armstrong.html" style="color: darkred;">
+    ✘ | armstrong
+</option>
+
+<option value="santa-fe/arocena.html" style="color: darkred;">
+    ✘ | arocena
+</option>
+
+<option value="santa-fe/arroyo-aguiar.html" style="color: darkred;">
+    ✘ | arroyo aguiar
+</option>
+
+<option value="santa-fe/arroyo-ceibal.html" style="color: darkred;">
+    ✘ | arroyo ceibal
+</option>
+
+<option value="santa-fe/arroyo-leyes.html" style="color: darkred;">
+    ✘ | arroyo leyes
+</option>
+
+<option value="santa-fe/arroyo-seco.html" style="color: darkred;">
+    ✘ | arroyo seco
+</option>
+
+<option value="santa-fe/arrufo.html" style="color: darkred;">
+    ✘ | arrufo
+</option>
+
+<option value="santa-fe/arteaga.html" style="color: darkred;">
+    ✘ | arteaga
 </option>
 
 <option value="santa-fe/ataliva.html" style="color: darkred;">
@@ -2421,6 +2315,42 @@
 
 <option value="santa-fe/aurelia.html" style="color: darkred;">
     ✘ | aurelia
+</option>
+
+<option value="santa-fe/avellaneda.html" style="color: darkred;">
+    ✘ | avellaneda
+</option>
+
+<option value="santa-fe/balneario-la-verde.html" style="color: darkred;">
+    ✘ | balneario la verde
+</option>
+
+<option value="santa-fe/balneario-monje.html" style="color: darkred;">
+    ✘ | balneario monje
+</option>
+
+<option value="santa-fe/barrancas.html" style="color: darkred;">
+    ✘ | barrancas
+</option>
+
+<option value="santa-fe/barrio-arroyo-del-medio.html" style="color: darkred;">
+    ✘ | barrio arroyo del medio
+</option>
+
+<option value="santa-fe/barrio-caima.html" style="color: darkred;">
+    ✘ | barrio caima
+</option>
+
+<option value="santa-fe/barrio-cicarelli.html" style="color: darkred;">
+    ✘ | barrio cicarelli
+</option>
+
+<option value="santa-fe/barrio-el-pacaa-barrio-comipini.html" style="color: darkred;">
+    ✘ | barrio el pacaá - barrio comipini
+</option>
+
+<option value="santa-fe/barrio-mitre.html" style="color: darkred;">
+    ✘ | barrio mitre
 </option>
 
 <option value="santa-fe/barrios-acapulco-y-veracruz.html" style="color: darkred;">
@@ -2435,284 +2365,160 @@
     ✘ | bella italia
 </option>
 
-<option value="santa-fe/castellanos.html" style="color: darkred;">
-    ✘ | castellanos
+<option value="santa-fe/beravebu.html" style="color: darkred;">
+    ✘ | beravebú
 </option>
 
-<option value="santa-fe/colonia-bicha.html" style="color: darkred;">
-    ✘ | colonia bicha
+<option value="santa-fe/berna.html" style="color: darkred;">
+    ✘ | berna
 </option>
 
-<option value="santa-fe/colonia-cello.html" style="color: darkred;">
-    ✘ | colonia cello
+<option value="santa-fe/bernardo-de-irigoyen.html" style="color: darkred;">
+    ✘ | bernardo de irigoyen
 </option>
 
-<option value="santa-fe/colonia-margarita.html" style="color: darkred;">
-    ✘ | colonia margarita
-</option>
-
-<option value="santa-fe/colonia-raquel.html" style="color: darkred;">
-    ✘ | colonia raquel
-</option>
-
-<option value="santa-fe/coronel-fraga.html" style="color: darkred;">
-    ✘ | coronel fraga
-</option>
-
-<option value="santa-fe/egusquiza.html" style="color: darkred;">
-    ✘ | egusquiza
-</option>
-
-<option value="santa-fe/esmeralda.html" style="color: darkred;">
-    ✘ | esmeralda
-</option>
-
-<option value="santa-fe/estacion-clucellas.html" style="color: darkred;">
-    ✘ | estación clucellas
-</option>
-
-<option value="santa-fe/estacion-saguier.html" style="color: darkred;">
-    ✘ | estación saguier
-</option>
-
-<option value="santa-fe/eusebia-y-carolina.html" style="color: darkred;">
-    ✘ | eusebia y carolina
-</option>
-
-<option value="santa-fe/eustolia.html" style="color: darkred;">
-    ✘ | eustolia
-</option>
-
-<option value="santa-fe/frontera.html" style="color: darkred;">
-    ✘ | frontera
-</option>
-
-<option value="santa-fe/garibaldi.html" style="color: darkred;">
-    ✘ | garibaldi
-</option>
-
-<option value="santa-fe/humberto-primo.html" style="color: darkred;">
-    ✘ | humberto primo
-</option>
-
-<option value="santa-fe/josefina.html" style="color: darkred;">
-    ✘ | josefina
-</option>
-
-<option value="santa-fe/lehmann.html" style="color: darkred;">
-    ✘ | lehmann
-</option>
-
-<option value="santa-fe/maria-juana.html" style="color: darkred;">
-    ✘ | maría juana
-</option>
-
-<option value="santa-fe/nueva-lehmann.html" style="color: darkred;">
-    ✘ | nueva lehmann
-</option>
-
-<option value="santa-fe/plaza-clucellas.html" style="color: darkred;">
-    ✘ | plaza clucellas
-</option>
-
-<option value="santa-fe/plaza-saguier.html" style="color: darkred;">
-    ✘ | plaza saguier
-</option>
-
-<option value="santa-fe/presidente-roca.html" style="color: darkred;">
-    ✘ | presidente roca
-</option>
-
-<option value="santa-fe/pueblo-marini.html" style="color: darkred;">
-    ✘ | pueblo marini
-</option>
-
-<option value="santa-fe/rafaela.html" style="color: darkred;">
-    ✘ | rafaela
-</option>
-
-<option value="santa-fe/ramona.html" style="color: darkred;">
-    ✘ | ramona
-</option>
-
-<option value="santa-fe/san-antonio.html" style="color: darkred;">
-    ✘ | san antonio
-</option>
-
-<option value="santa-fe/san-vicente.html" style="color: darkred;">
-    ✘ | san vicente
-</option>
-
-<option value="santa-fe/santa-clara-de-saguier.html" style="color: darkred;">
-    ✘ | santa clara de saguier
-</option>
-
-<option value="santa-fe/sunchales.html" style="color: darkred;">
-    ✘ | sunchales
-</option>
-
-<option value="santa-fe/susana.html" style="color: darkred;">
-    ✘ | susana
-</option>
-
-<option value="santa-fe/tacural.html" style="color: darkred;">
-    ✘ | tacural
-</option>
-
-<option value="santa-fe/vila.html" style="color: darkred;">
-    ✘ | vila
-</option>
-
-<option value="santa-fe/villa-josefina.html" style="color: darkred;">
-    ✘ | villa josefina
-</option>
-
-<option value="santa-fe/villa-san-jose.html" style="color: darkred;">
-    ✘ | villa san josé
-</option>
-
-<option value="santa-fe/virginia.html" style="color: darkred;">
-    ✘ | virginia
-</option>
-
-<option value="santa-fe/zenon-pereyra.html" style="color: darkred;">
-    ✘ | zenón pereyra
-</option>
-
-<option value="santa-fe/alcorta.html" style="color: darkred;">
-    ✘ | alcorta
-</option>
-
-<option value="santa-fe/barrio-arroyo-del-medio.html" style="color: darkred;">
-    ✘ | barrio arroyo del medio
-</option>
-
-<option value="santa-fe/barrio-mitre.html" style="color: darkred;">
-    ✘ | barrio mitre
+<option value="santa-fe/bigand.html" style="color: darkred;">
+    ✘ | bigand
 </option>
 
 <option value="santa-fe/bombal.html" style="color: darkred;">
     ✘ | bombal
 </option>
 
-<option value="santa-fe/canada-rica.html" style="color: darkred;">
-    ✘ | cañada rica
+<option value="santa-fe/bouquet.html" style="color: darkred;">
+    ✘ | bouquet
 </option>
 
-<option value="santa-fe/cepeda.html" style="color: darkred;">
-    ✘ | cepeda
+<option value="santa-fe/bustinza.html" style="color: darkred;">
+    ✘ | bustinza
 </option>
 
-<option value="santa-fe/empalme-villa-constitucion.html" style="color: darkred;">
-    ✘ | empalme villa constitución
+<option value="santa-fe/cabal.html" style="color: darkred;">
+    ✘ | cabal
 </option>
 
-<option value="santa-fe/firmat.html" style="color: darkred;">
-    ✘ | firmat
-</option>
-
-<option value="santa-fe/general-gelly.html" style="color: darkred;">
-    ✘ | general gelly
-</option>
-
-<option value="santa-fe/godoy.html" style="color: darkred;">
-    ✘ | godoy
-</option>
-
-<option value="santa-fe/juan-b-molina.html" style="color: darkred;">
-    ✘ | juan b. molina
-</option>
-
-<option value="santa-fe/juncal.html" style="color: darkred;">
-    ✘ | juncal
-</option>
-
-<option value="santa-fe/la-vanguardia.html" style="color: darkred;">
-    ✘ | la vanguardia
-</option>
-
-<option value="santa-fe/maximo-paz.html" style="color: darkred;">
-    ✘ | máximo paz
-</option>
-
-<option value="santa-fe/pavon.html" style="color: darkred;">
-    ✘ | pavón
-</option>
-
-<option value="santa-fe/pavon-arriba.html" style="color: darkred;">
-    ✘ | pavón arriba
-</option>
-
-<option value="santa-fe/peyrano.html" style="color: darkred;">
-    ✘ | peyrano
-</option>
-
-<option value="santa-fe/rueda.html" style="color: darkred;">
-    ✘ | rueda
-</option>
-
-<option value="santa-fe/santa-teresa.html" style="color: darkred;">
-    ✘ | santa teresa
-</option>
-
-<option value="santa-fe/sargento-cabral.html" style="color: darkred;">
-    ✘ | sargento cabral
-</option>
-
-<option value="santa-fe/stephenson.html" style="color: darkred;">
-    ✘ | stephenson
-</option>
-
-<option value="santa-fe/theobald.html" style="color: darkred;">
-    ✘ | theobald
-</option>
-
-<option value="santa-fe/villa-constitucion.html" style="color: darkred;">
-    ✘ | villa constitución
-</option>
-
-<option value="santa-fe/cayasta.html" style="color: darkred;">
-    ✘ | cayastá
-</option>
-
-<option value="santa-fe/helvecia.html" style="color: darkred;">
-    ✘ | helvecia
-</option>
-
-<option value="santa-fe/los-zapallos.html" style="color: darkred;">
-    ✘ | los zapallos
-</option>
-
-<option value="santa-fe/saladero-mariano-cabal.html" style="color: darkred;">
-    ✘ | saladero mariano cabal
-</option>
-
-<option value="santa-fe/santa-rosa-de-calchines.html" style="color: darkred;">
-    ✘ | santa rosa de calchines
-</option>
-
-<option value="santa-fe/aaron-castellanos.html" style="color: darkred;">
-    ✘ | aarón castellanos
-</option>
-
-<option value="santa-fe/amenabar.html" style="color: darkred;">
-    ✘ | amenábar
+<option value="santa-fe/cacique-ariacaiquin.html" style="color: darkred;">
+    ✘ | cacique ariacaiquín
 </option>
 
 <option value="santa-fe/cafferata.html" style="color: darkred;">
     ✘ | cafferata
 </option>
 
+<option value="santa-fe/calchaqui.html" style="color: darkred;">
+    ✘ | calchaquí
+</option>
+
+<option value="santa-fe/campo-andino.html" style="color: darkred;">
+    ✘ | campo andino
+</option>
+
+<option value="santa-fe/canada-de-gomez.html" style="color: darkred;">
+    ✘ | cañada de gómez
+</option>
+
 <option value="santa-fe/canada-del-ucle.html" style="color: darkred;">
     ✘ | cañada del ucle
+</option>
+
+<option value="santa-fe/canada-ombu.html" style="color: darkred;">
+    ✘ | cañada ombú
+</option>
+
+<option value="santa-fe/canada-rica.html" style="color: darkred;">
+    ✘ | cañada rica
+</option>
+
+<option value="santa-fe/canada-rosquin.html" style="color: darkred;">
+    ✘ | cañada rosquín
+</option>
+
+<option value="santa-fe/candioti.html" style="color: darkred;">
+    ✘ | candioti
+</option>
+
+<option value="santa-fe/capitan-bermudez.html" style="color: darkred;">
+    ✘ | capitán bermúdez
+</option>
+
+<option value="santa-fe/capivara.html" style="color: darkred;">
+    ✘ | capivara
+</option>
+
+<option value="santa-fe/carcarana.html" style="color: darkred;">
+    ✘ | carcarañá
+</option>
+
+<option value="santa-fe/carlos-pellegrini.html" style="color: darkred;">
+    ✘ | carlos pellegrini
 </option>
 
 <option value="santa-fe/carmen.html" style="color: darkred;">
     ✘ | carmen
 </option>
 
+<option value="santa-fe/carmen-del-sauce.html" style="color: darkred;">
+    ✘ | carmen del sauce
+</option>
+
 <option value="santa-fe/carreras.html" style="color: darkred;">
     ✘ | carreras
+</option>
+
+<option value="santa-fe/carrizales.html" style="color: darkred;">
+    ✘ | carrizales
+</option>
+
+<option value="santa-fe/casalegno.html" style="color: darkred;">
+    ✘ | casalegno
+</option>
+
+<option value="santa-fe/casas.html" style="color: darkred;">
+    ✘ | casas
+</option>
+
+<option value="santa-fe/casilda.html" style="color: darkred;">
+    ✘ | casilda
+</option>
+
+<option value="santa-fe/castelar.html" style="color: darkred;">
+    ✘ | castelar
+</option>
+
+<option value="santa-fe/castellanos.html" style="color: darkred;">
+    ✘ | castellanos
+</option>
+
+<option value="santa-fe/cavour.html" style="color: darkred;">
+    ✘ | cavour
+</option>
+
+<option value="santa-fe/cayasta.html" style="color: darkred;">
+    ✘ | cayastá
+</option>
+
+<option value="santa-fe/cayastacito.html" style="color: darkred;">
+    ✘ | cayastacito
+</option>
+
+<option value="santa-fe/centeno.html" style="color: darkred;">
+    ✘ | centeno
+</option>
+
+<option value="santa-fe/cepeda.html" style="color: darkred;">
+    ✘ | cepeda
+</option>
+
+<option value="santa-fe/ceres.html" style="color: darkred;">
+    ✘ | ceres
+</option>
+
+<option value="santa-fe/chabas.html" style="color: darkred;">
+    ✘ | chabas
+</option>
+
+<option value="santa-fe/chanar-ladeado.html" style="color: darkred;">
+    ✘ | chañar ladeado
 </option>
 
 <option value="santa-fe/chapuy.html" style="color: darkred;">
@@ -2727,36 +2533,572 @@
     ✘ | christophersen
 </option>
 
+<option value="santa-fe/classon.html" style="color: darkred;">
+    ✘ | classon
+</option>
+
+<option value="santa-fe/colmena.html" style="color: darkred;">
+    ✘ | colmena
+</option>
+
+<option value="santa-fe/colonia-ana.html" style="color: darkred;">
+    ✘ | colonia ana
+</option>
+
+<option value="santa-fe/colonia-belgrano.html" style="color: darkred;">
+    ✘ | colonia belgrano
+</option>
+
+<option value="santa-fe/colonia-bicha.html" style="color: darkred;">
+    ✘ | colonia bicha
+</option>
+
+<option value="santa-fe/colonia-bossi.html" style="color: darkred;">
+    ✘ | colonia bossi
+</option>
+
+<option value="santa-fe/colonia-cello.html" style="color: darkred;">
+    ✘ | colonia cello
+</option>
+
+<option value="santa-fe/colonia-dolores.html" style="color: darkred;">
+    ✘ | colonia dolores
+</option>
+
+<option value="santa-fe/colonia-duran.html" style="color: darkred;">
+    ✘ | colonia durán
+</option>
+
+<option value="santa-fe/colonia-margarita.html" style="color: darkred;">
+    ✘ | colonia margarita
+</option>
+
+<option value="santa-fe/colonia-medici.html" style="color: darkred;">
+    ✘ | colonia médici
+</option>
+
+<option value="santa-fe/colonia-raquel.html" style="color: darkred;">
+    ✘ | colonia raquel
+</option>
+
+<option value="santa-fe/colonia-rosa.html" style="color: darkred;">
+    ✘ | colonia rosa
+</option>
+
+<option value="santa-fe/constanza.html" style="color: darkred;">
+    ✘ | constanza
+</option>
+
+<option value="santa-fe/coronda.html" style="color: darkred;">
+    ✘ | coronda
+</option>
+
+<option value="santa-fe/coronel-arnold.html" style="color: darkred;">
+    ✘ | coronel arnold
+</option>
+
+<option value="santa-fe/coronel-bogado.html" style="color: darkred;">
+    ✘ | coronel bogado
+</option>
+
+<option value="santa-fe/coronel-fraga.html" style="color: darkred;">
+    ✘ | coronel fraga
+</option>
+
+<option value="santa-fe/coronel-rodolfo-s-dominguez.html" style="color: darkred;">
+    ✘ | coronel rodolfo s. domínguez
+</option>
+
+<option value="santa-fe/correa.html" style="color: darkred;">
+    ✘ | correa
+</option>
+
+<option value="santa-fe/crispi.html" style="color: darkred;">
+    ✘ | crispi
+</option>
+
+<option value="santa-fe/cuatro-esquinas.html" style="color: darkred;">
+    ✘ | cuatro esquinas
+</option>
+
+<option value="santa-fe/cululu.html" style="color: darkred;">
+    ✘ | cululú
+</option>
+
+<option value="santa-fe/curupayti.html" style="color: darkred;">
+    ✘ | curupaytí
+</option>
+
+<option value="santa-fe/desvio-arijon.html" style="color: darkred;">
+    ✘ | desvío arijón
+</option>
+
+<option value="santa-fe/diaz.html" style="color: darkred;">
+    ✘ | díaz
+</option>
+
 <option value="santa-fe/diego-de-alvear.html" style="color: darkred;">
     ✘ | diego de alvear
+</option>
+
+<option value="santa-fe/egusquiza.html" style="color: darkred;">
+    ✘ | egusquiza
+</option>
+
+<option value="santa-fe/el-araza.html" style="color: darkred;">
+    ✘ | el araza
+</option>
+
+<option value="santa-fe/el-caramelo.html" style="color: darkred;">
+    ✘ | el caramelo
+</option>
+
+<option value="santa-fe/el-rabon.html" style="color: darkred;">
+    ✘ | el rabón
+</option>
+
+<option value="santa-fe/el-trebol.html" style="color: darkred;">
+    ✘ | el trébol
+</option>
+
+<option value="santa-fe/elisa.html" style="color: darkred;">
+    ✘ | elisa
 </option>
 
 <option value="santa-fe/elortondo.html" style="color: darkred;">
     ✘ | elortondo
 </option>
 
+<option value="santa-fe/emilia.html" style="color: darkred;">
+    ✘ | emilia
+</option>
+
+<option value="santa-fe/empalme-san-carlos.html" style="color: darkred;">
+    ✘ | empalme san carlos
+</option>
+
+<option value="santa-fe/empalme-villa-constitucion.html" style="color: darkred;">
+    ✘ | empalme villa constitución
+</option>
+
+<option value="santa-fe/esmeralda.html" style="color: darkred;">
+    ✘ | esmeralda
+</option>
+
+<option value="santa-fe/esperanza.html" style="color: darkred;">
+    ✘ | esperanza
+</option>
+
+<option value="santa-fe/estacion-clucellas.html" style="color: darkred;">
+    ✘ | estación clucellas
+</option>
+
+<option value="santa-fe/estacion-saguier.html" style="color: darkred;">
+    ✘ | estación saguier
+</option>
+
+<option value="santa-fe/esteban-rams.html" style="color: darkred;">
+    ✘ | esteban rams
+</option>
+
+<option value="santa-fe/esther.html" style="color: darkred;">
+    ✘ | esther
+</option>
+
+<option value="santa-fe/eusebia-y-carolina.html" style="color: darkred;">
+    ✘ | eusebia y carolina
+</option>
+
+<option value="santa-fe/eustolia.html" style="color: darkred;">
+    ✘ | eustolia
+</option>
+
+<option value="santa-fe/felicia.html" style="color: darkred;">
+    ✘ | felicia
+</option>
+
+<option value="santa-fe/fighiera.html" style="color: darkred;">
+    ✘ | fighiera
+</option>
+
+<option value="santa-fe/firmat.html" style="color: darkred;">
+    ✘ | firmat
+</option>
+
+<option value="santa-fe/florencia.html" style="color: darkred;">
+    ✘ | florencia
+</option>
+
+<option value="santa-fe/fortin-olmos.html" style="color: darkred;">
+    ✘ | fortín olmos
+</option>
+
+<option value="santa-fe/franck.html" style="color: darkred;">
+    ✘ | franck
+</option>
+
+<option value="santa-fe/fray-luis-beltran.html" style="color: darkred;">
+    ✘ | fray luis beltrán
+</option>
+
+<option value="santa-fe/frontera.html" style="color: darkred;">
+    ✘ | frontera
+</option>
+
+<option value="santa-fe/fuentes.html" style="color: darkred;">
+    ✘ | fuentes
+</option>
+
+<option value="santa-fe/funes.html" style="color: darkred;">
+    ✘ | funes
+</option>
+
+<option value="santa-fe/gaboto.html" style="color: darkred;">
+    ✘ | gaboto
+</option>
+
+<option value="santa-fe/galvez.html" style="color: darkred;">
+    ✘ | gálvez
+</option>
+
+<option value="santa-fe/garabato.html" style="color: darkred;">
+    ✘ | garabato
+</option>
+
+<option value="santa-fe/garibaldi.html" style="color: darkred;">
+    ✘ | garibaldi
+</option>
+
+<option value="santa-fe/gato-colorado.html" style="color: darkred;">
+    ✘ | gato colorado
+</option>
+
+<option value="santa-fe/general-gelly.html" style="color: darkred;">
+    ✘ | general gelly
+</option>
+
+<option value="santa-fe/general-lagos.html" style="color: darkred;">
+    ✘ | general lagos
+</option>
+
+<option value="santa-fe/gessler.html" style="color: darkred;">
+    ✘ | gessler
+</option>
+
+<option value="santa-fe/gobernador-crespo.html" style="color: darkred;">
+    ✘ | gobernador crespo
+</option>
+
+<option value="santa-fe/godeken.html" style="color: darkred;">
+    ✘ | gödeken
+</option>
+
+<option value="santa-fe/godoy.html" style="color: darkred;">
+    ✘ | godoy
+</option>
+
+<option value="santa-fe/golondrina.html" style="color: darkred;">
+    ✘ | golondrina
+</option>
+
+<option value="santa-fe/granadero-baigorria.html" style="color: darkred;">
+    ✘ | granadero baigorria
+</option>
+
+<option value="santa-fe/gregoria-perez-de-denis.html" style="color: darkred;">
+    ✘ | gregoria pérez de denis
+</option>
+
+<option value="santa-fe/grutly.html" style="color: darkred;">
+    ✘ | grutly
+</option>
+
+<option value="santa-fe/guadalupe-norte.html" style="color: darkred;">
+    ✘ | guadalupe norte
+</option>
+
+<option value="santa-fe/helvecia.html" style="color: darkred;">
+    ✘ | helvecia
+</option>
+
+<option value="santa-fe/hersilia.html" style="color: darkred;">
+    ✘ | hersilia
+</option>
+
+<option value="santa-fe/hipatia.html" style="color: darkred;">
+    ✘ | hipatía
+</option>
+
+<option value="santa-fe/huanqueros.html" style="color: darkred;">
+    ✘ | huanqueros
+</option>
+
 <option value="santa-fe/hughes.html" style="color: darkred;">
     ✘ | hughes
+</option>
+
+<option value="santa-fe/humberto-primo.html" style="color: darkred;">
+    ✘ | humberto primo
+</option>
+
+<option value="santa-fe/humboldt.html" style="color: darkred;">
+    ✘ | humboldt
+</option>
+
+<option value="santa-fe/ibarlucea.html" style="color: darkred;">
+    ✘ | ibarlucea
+</option>
+
+<option value="santa-fe/ingeniero-chanourdie.html" style="color: darkred;">
+    ✘ | ingeniero chanourdie
+</option>
+
+<option value="santa-fe/intiyaco.html" style="color: darkred;">
+    ✘ | intiyaco
+</option>
+
+<option value="santa-fe/irigoyen.html" style="color: darkred;">
+    ✘ | irigoyen
+</option>
+
+<option value="santa-fe/jacinto-l-arauz.html" style="color: darkred;">
+    ✘ | jacinto l. aráuz
+</option>
+
+<option value="santa-fe/josefina.html" style="color: darkred;">
+    ✘ | josefina
+</option>
+
+<option value="santa-fe/juan-b-molina.html" style="color: darkred;">
+    ✘ | juan b. molina
+</option>
+
+<option value="santa-fe/juncal.html" style="color: darkred;">
+    ✘ | juncal
+</option>
+
+<option value="santa-fe/kilometro-101.html" style="color: darkred;">
+    ✘ | kilómetro 101
+</option>
+
+<option value="santa-fe/kilometro-115.html" style="color: darkred;">
+    ✘ | kilómetro 115
+</option>
+
+<option value="santa-fe/la-brava.html" style="color: darkred;">
+    ✘ | la brava
+</option>
+
+<option value="santa-fe/la-cabral.html" style="color: darkred;">
+    ✘ | la cabral
 </option>
 
 <option value="santa-fe/la-chispa.html" style="color: darkred;">
     ✘ | la chispa
 </option>
 
+<option value="santa-fe/la-criolla.html" style="color: darkred;">
+    ✘ | la criolla
+</option>
+
+<option value="santa-fe/la-gallareta.html" style="color: darkred;">
+    ✘ | la gallareta
+</option>
+
+<option value="santa-fe/la-isleta.html" style="color: darkred;">
+    ✘ | la isleta
+</option>
+
+<option value="santa-fe/la-lucila.html" style="color: darkred;">
+    ✘ | la lucila
+</option>
+
+<option value="santa-fe/la-pelada.html" style="color: darkred;">
+    ✘ | la pelada
+</option>
+
+<option value="santa-fe/la-penca-y-caraguata.html" style="color: darkred;">
+    ✘ | la penca y caraguatá
+</option>
+
+<option value="santa-fe/la-rubia.html" style="color: darkred;">
+    ✘ | la rubia
+</option>
+
+<option value="santa-fe/la-sarita.html" style="color: darkred;">
+    ✘ | la sarita
+</option>
+
+<option value="santa-fe/la-vanguardia.html" style="color: darkred;">
+    ✘ | la vanguardia
+</option>
+
 <option value="santa-fe/labordeboy.html" style="color: darkred;">
     ✘ | labordeboy
+</option>
+
+<option value="santa-fe/laguna-paiva.html" style="color: darkred;">
+    ✘ | laguna paiva
+</option>
+
+<option value="santa-fe/landeta.html" style="color: darkred;">
+    ✘ | landeta
+</option>
+
+<option value="santa-fe/lanteri.html" style="color: darkred;">
+    ✘ | lanteri
+</option>
+
+<option value="santa-fe/larguia.html" style="color: darkred;">
+    ✘ | larguía
+</option>
+
+<option value="santa-fe/larrechea.html" style="color: darkred;">
+    ✘ | larrechea
+</option>
+
+<option value="santa-fe/las-avispas.html" style="color: darkred;">
+    ✘ | las avispas
+</option>
+
+<option value="santa-fe/las-bandurrias.html" style="color: darkred;">
+    ✘ | las bandurrias
+</option>
+
+<option value="santa-fe/las-garzas.html" style="color: darkred;">
+    ✘ | las garzas
+</option>
+
+<option value="santa-fe/las-palmeras.html" style="color: darkred;">
+    ✘ | las palmeras
+</option>
+
+<option value="santa-fe/las-parejas.html" style="color: darkred;">
+    ✘ | las parejas
+</option>
+
+<option value="santa-fe/las-petacas.html" style="color: darkred;">
+    ✘ | las petacas
+</option>
+
+<option value="santa-fe/las-rosas.html" style="color: darkred;">
+    ✘ | las rosas
+</option>
+
+<option value="santa-fe/las-toscas.html" style="color: darkred;">
+    ✘ | las toscas
+</option>
+
+<option value="santa-fe/las-tunas.html" style="color: darkred;">
+    ✘ | las tunas
 </option>
 
 <option value="santa-fe/lazzarino.html" style="color: darkred;">
     ✘ | lazzarino
 </option>
 
+<option value="santa-fe/lehmann.html" style="color: darkred;">
+    ✘ | lehmann
+</option>
+
+<option value="santa-fe/llambi-campbell.html" style="color: darkred;">
+    ✘ | llambi campbell
+</option>
+
+<option value="santa-fe/logrono.html" style="color: darkred;">
+    ✘ | logroño
+</option>
+
+<option value="santa-fe/loma-alta.html" style="color: darkred;">
+    ✘ | loma alta
+</option>
+
+<option value="santa-fe/lopez.html" style="color: darkred;">
+    ✘ | lópez
+</option>
+
+<option value="santa-fe/los-amores.html" style="color: darkred;">
+    ✘ | los amores
+</option>
+
+<option value="santa-fe/los-cardos.html" style="color: darkred;">
+    ✘ | los cardos
+</option>
+
+<option value="santa-fe/los-laureles.html" style="color: darkred;">
+    ✘ | los laureles
+</option>
+
+<option value="santa-fe/los-molinos.html" style="color: darkred;">
+    ✘ | los molinos
+</option>
+
+<option value="santa-fe/los-muchachos-la-alborada.html" style="color: darkred;">
+    ✘ | los muchachos - la alborada
+</option>
+
+<option value="santa-fe/los-nogales.html" style="color: darkred;">
+    ✘ | los nogales
+</option>
+
+<option value="santa-fe/los-quirquinchos.html" style="color: darkred;">
+    ✘ | los quirquinchos
+</option>
+
+<option value="santa-fe/los-zapallos.html" style="color: darkred;">
+    ✘ | los zapallos
+</option>
+
+<option value="santa-fe/lucio-v-lopez.html" style="color: darkred;">
+    ✘ | lucio v. lópez
+</option>
+
+<option value="santa-fe/luis-palacios.html" style="color: darkred;">
+    ✘ | luis palacios
+</option>
+
+<option value="santa-fe/maciel.html" style="color: darkred;">
+    ✘ | maciel
+</option>
+
 <option value="santa-fe/maggiolo.html" style="color: darkred;">
     ✘ | maggiolo
 </option>
 
+<option value="santa-fe/malabrigo.html" style="color: darkred;">
+    ✘ | malabrigo
+</option>
+
+<option value="santa-fe/marcelino-escalada.html" style="color: darkred;">
+    ✘ | marcelino escalada
+</option>
+
+<option value="santa-fe/margarita.html" style="color: darkred;">
+    ✘ | margarita
+</option>
+
+<option value="santa-fe/maria-juana.html" style="color: darkred;">
+    ✘ | maría juana
+</option>
+
+<option value="santa-fe/maria-luisa.html" style="color: darkred;">
+    ✘ | maría luisa
+</option>
+
+<option value="santa-fe/maria-susana.html" style="color: darkred;">
+    ✘ | maría susana
+</option>
+
 <option value="santa-fe/maria-teresa.html" style="color: darkred;">
     ✘ | maría teresa
+</option>
+
+<option value="santa-fe/matilde.html" style="color: darkred;">
+    ✘ | matilde
+</option>
+
+<option value="santa-fe/maximo-paz.html" style="color: darkred;">
+    ✘ | máximo paz
 </option>
 
 <option value="santa-fe/melincue.html" style="color: darkred;">
@@ -2767,252 +3109,68 @@
     ✘ | miguel torres
 </option>
 
-<option value="santa-fe/murphy.html" style="color: darkred;">
-    ✘ | murphy
+<option value="santa-fe/moises-ville.html" style="color: darkred;">
+    ✘ | moisés ville
 </option>
 
-<option value="santa-fe/rufino.html" style="color: darkred;">
-    ✘ | rufino
+<option value="santa-fe/monigotes.html" style="color: darkred;">
+    ✘ | monigotes
 </option>
 
-<option value="santa-fe/san-eduardo.html" style="color: darkred;">
-    ✘ | san eduardo
+<option value="santa-fe/monje.html" style="color: darkred;">
+    ✘ | monje
 </option>
 
-<option value="santa-fe/san-francisco-de-santa-fe.html" style="color: darkred;">
-    ✘ | san francisco de santa fe
-</option>
-
-<option value="santa-fe/san-gregorio.html" style="color: darkred;">
-    ✘ | san gregorio
-</option>
-
-<option value="santa-fe/sancti-spiritu.html" style="color: darkred;">
-    ✘ | sancti spiritu
-</option>
-
-<option value="santa-fe/santa-isabel.html" style="color: darkred;">
-    ✘ | santa isabel
-</option>
-
-<option value="santa-fe/teodelina.html" style="color: darkred;">
-    ✘ | teodelina
-</option>
-
-<option value="santa-fe/venado-tuerto.html" style="color: darkred;">
-    ✘ | venado tuerto
-</option>
-
-<option value="santa-fe/villa-canas.html" style="color: darkred;">
-    ✘ | villa cañás
-</option>
-
-<option value="santa-fe/wheelwright.html" style="color: darkred;">
-    ✘ | wheelwright
-</option>
-
-<option value="santa-fe/arroyo-ceibal.html" style="color: darkred;">
-    ✘ | arroyo ceibal
-</option>
-
-<option value="santa-fe/avellaneda.html" style="color: darkred;">
-    ✘ | avellaneda
-</option>
-
-<option value="santa-fe/berna.html" style="color: darkred;">
-    ✘ | berna
-</option>
-
-<option value="santa-fe/el-araza.html" style="color: darkred;">
-    ✘ | el araza
-</option>
-
-<option value="santa-fe/el-rabon.html" style="color: darkred;">
-    ✘ | el rabón
-</option>
-
-<option value="santa-fe/florencia.html" style="color: darkred;">
-    ✘ | florencia
-</option>
-
-<option value="santa-fe/guadalupe-norte.html" style="color: darkred;">
-    ✘ | guadalupe norte
-</option>
-
-<option value="santa-fe/ingeniero-chanourdie.html" style="color: darkred;">
-    ✘ | ingeniero chanourdie
-</option>
-
-<option value="santa-fe/la-isleta.html" style="color: darkred;">
-    ✘ | la isleta
-</option>
-
-<option value="santa-fe/la-sarita.html" style="color: darkred;">
-    ✘ | la sarita
-</option>
-
-<option value="santa-fe/lanteri.html" style="color: darkred;">
-    ✘ | lanteri
-</option>
-
-<option value="santa-fe/las-garzas.html" style="color: darkred;">
-    ✘ | las garzas
-</option>
-
-<option value="santa-fe/las-toscas.html" style="color: darkred;">
-    ✘ | las toscas
-</option>
-
-<option value="santa-fe/los-laureles.html" style="color: darkred;">
-    ✘ | los laureles
-</option>
-
-<option value="santa-fe/malabrigo.html" style="color: darkred;">
-    ✘ | malabrigo
-</option>
-
-<option value="santa-fe/paraje-san-manuel.html" style="color: darkred;">
-    ✘ | paraje san manuel
-</option>
-
-<option value="santa-fe/puerto-reconquista.html" style="color: darkred;">
-    ✘ | puerto reconquista
-</option>
-
-<option value="santa-fe/reconquista.html" style="color: darkred;">
-    ✘ | reconquista
-</option>
-
-<option value="santa-fe/san-antonio-de-obligado.html" style="color: darkred;">
-    ✘ | san antonio de obligado
-</option>
-
-<option value="santa-fe/tacuarendi.html" style="color: darkred;">
-    ✘ | tacuarendí
-</option>
-
-<option value="santa-fe/villa-ana.html" style="color: darkred;">
-    ✘ | villa ana
-</option>
-
-<option value="santa-fe/villa-guillermina.html" style="color: darkred;">
-    ✘ | villa guillermina
-</option>
-
-<option value="santa-fe/villa-ocampo.html" style="color: darkred;">
-    ✘ | villa ocampo
-</option>
-
-<option value="santa-fe/barrio-cicarelli.html" style="color: darkred;">
-    ✘ | barrio cicarelli
-</option>
-
-<option value="santa-fe/bustinza.html" style="color: darkred;">
-    ✘ | bustinza
-</option>
-
-<option value="santa-fe/canada-de-gomez.html" style="color: darkred;">
-    ✘ | cañada de gómez
-</option>
-
-<option value="santa-fe/carrizales.html" style="color: darkred;">
-    ✘ | carrizales
-</option>
-
-<option value="santa-fe/classon.html" style="color: darkred;">
-    ✘ | classon
-</option>
-
-<option value="santa-fe/colonia-medici.html" style="color: darkred;">
-    ✘ | colonia médici
-</option>
-
-<option value="santa-fe/correa.html" style="color: darkred;">
-    ✘ | correa
-</option>
-
-<option value="santa-fe/larguia.html" style="color: darkred;">
-    ✘ | larguía
-</option>
-
-<option value="santa-fe/lucio-v-lopez.html" style="color: darkred;">
-    ✘ | lucio v. lópez
-</option>
-
-<option value="santa-fe/oliveros.html" style="color: darkred;">
-    ✘ | oliveros
-</option>
-
-<option value="santa-fe/pueblo-andino.html" style="color: darkred;">
-    ✘ | pueblo andino
-</option>
-
-<option value="santa-fe/salto-grande.html" style="color: darkred;">
-    ✘ | salto grande
-</option>
-
-<option value="santa-fe/serodino.html" style="color: darkred;">
-    ✘ | serodino
-</option>
-
-<option value="santa-fe/totoras.html" style="color: darkred;">
-    ✘ | totoras
-</option>
-
-<option value="santa-fe/villa-eloisa.html" style="color: darkred;">
-    ✘ | villa eloísa
-</option>
-
-<option value="santa-fe/villa-la-rivera-oliveros.html" style="color: darkred;">
-    ✘ | villa la rivera (oliveros)
-</option>
-
-<option value="santa-fe/villa-la-rivera-pueblo-andino.html" style="color: darkred;">
-    ✘ | villa la rivera (pueblo andino)
-</option>
-
-<option value="santa-fe/angel-gallardo.html" style="color: darkred;">
-    ✘ | angel gallardo
-</option>
-
-<option value="santa-fe/arroyo-aguiar.html" style="color: darkred;">
-    ✘ | arroyo aguiar
-</option>
-
-<option value="santa-fe/arroyo-leyes.html" style="color: darkred;">
-    ✘ | arroyo leyes
-</option>
-
-<option value="santa-fe/cabal.html" style="color: darkred;">
-    ✘ | cabal
-</option>
-
-<option value="santa-fe/campo-andino.html" style="color: darkred;">
-    ✘ | campo andino
-</option>
-
-<option value="santa-fe/candioti.html" style="color: darkred;">
-    ✘ | candioti
-</option>
-
-<option value="santa-fe/emilia.html" style="color: darkred;">
-    ✘ | emilia
-</option>
-
-<option value="santa-fe/laguna-paiva.html" style="color: darkred;">
-    ✘ | laguna paiva
-</option>
-
-<option value="santa-fe/llambi-campbell.html" style="color: darkred;">
-    ✘ | llambi campbell
+<option value="santa-fe/monte-flores.html" style="color: darkred;">
+    ✘ | monte flores
 </option>
 
 <option value="santa-fe/monte-vera.html" style="color: darkred;">
     ✘ | monte vera
 </option>
 
+<option value="santa-fe/montefiore.html" style="color: darkred;">
+    ✘ | montefiore
+</option>
+
+<option value="santa-fe/montes-de-oca.html" style="color: darkred;">
+    ✘ | montes de oca
+</option>
+
+<option value="santa-fe/murphy.html" style="color: darkred;">
+    ✘ | murphy
+</option>
+
+<option value="santa-fe/nanducita.html" style="color: darkred;">
+    ✘ | ñanducita
+</option>
+
+<option value="santa-fe/nare.html" style="color: darkred;">
+    ✘ | naré
+</option>
+
 <option value="santa-fe/nelson.html" style="color: darkred;">
     ✘ | nelson
+</option>
+
+<option value="santa-fe/nueva-lehmann.html" style="color: darkred;">
+    ✘ | nueva lehmann
+</option>
+
+<option value="santa-fe/nuevo-torino.html" style="color: darkred;">
+    ✘ | nuevo torino
+</option>
+
+<option value="santa-fe/oliveros.html" style="color: darkred;">
+    ✘ | oliveros
+</option>
+
+<option value="santa-fe/palacios.html" style="color: darkred;">
+    ✘ | palacios
+</option>
+
+<option value="santa-fe/paraje-29.html" style="color: darkred;">
+    ✘ | paraje 29
 </option>
 
 <option value="santa-fe/paraje-chaco-chico.html" style="color: darkred;">
@@ -3023,104 +3181,64 @@
     ✘ | paraje la costa
 </option>
 
-<option value="santa-fe/recreo.html" style="color: darkred;">
-    ✘ | recreo
+<option value="santa-fe/paraje-san-manuel.html" style="color: darkred;">
+    ✘ | paraje san manuel
 </option>
 
-<option value="santa-fe/rincon-potrero.html" style="color: darkred;">
-    ✘ | rincón potrero
+<option value="santa-fe/pavon.html" style="color: darkred;">
+    ✘ | pavón
 </option>
 
-<option value="santa-fe/san-jose-del-rincon.html" style="color: darkred;">
-    ✘ | san josé del rincón
+<option value="santa-fe/pavon-arriba.html" style="color: darkred;">
+    ✘ | pavón arriba
 </option>
 
-<option value="santa-fe/santa-fe.html" style="color: darkred;">
-    ✘ | santa fe
+<option value="santa-fe/pedro-gomez-cello.html" style="color: darkred;">
+    ✘ | pedro gómez cello
 </option>
 
-<option value="santa-fe/santo-tome.html" style="color: darkred;">
-    ✘ | santo tomé
+<option value="santa-fe/perez.html" style="color: darkred;">
+    ✘ | pérez
 </option>
 
-<option value="santa-fe/sauce-viejo.html" style="color: darkred;">
-    ✘ | sauce viejo
+<option value="santa-fe/peyrano.html" style="color: darkred;">
+    ✘ | peyrano
 </option>
 
-<option value="santa-fe/villa-laura.html" style="color: darkred;">
-    ✘ | villa laura
-</option>
-
-<option value="santa-fe/cavour.html" style="color: darkred;">
-    ✘ | cavour
-</option>
-
-<option value="santa-fe/cululu.html" style="color: darkred;">
-    ✘ | cululú
-</option>
-
-<option value="santa-fe/elisa.html" style="color: darkred;">
-    ✘ | elisa
-</option>
-
-<option value="santa-fe/empalme-san-carlos.html" style="color: darkred;">
-    ✘ | empalme san carlos
-</option>
-
-<option value="santa-fe/esperanza.html" style="color: darkred;">
-    ✘ | esperanza
-</option>
-
-<option value="santa-fe/felicia.html" style="color: darkred;">
-    ✘ | felicia
-</option>
-
-<option value="santa-fe/franck.html" style="color: darkred;">
-    ✘ | franck
-</option>
-
-<option value="santa-fe/grutly.html" style="color: darkred;">
-    ✘ | grutly
-</option>
-
-<option value="santa-fe/hipatia.html" style="color: darkred;">
-    ✘ | hipatía
-</option>
-
-<option value="santa-fe/humboldt.html" style="color: darkred;">
-    ✘ | humboldt
-</option>
-
-<option value="santa-fe/jacinto-l-arauz.html" style="color: darkred;">
-    ✘ | jacinto l. aráuz
-</option>
-
-<option value="santa-fe/la-pelada.html" style="color: darkred;">
-    ✘ | la pelada
-</option>
-
-<option value="santa-fe/las-tunas.html" style="color: darkred;">
-    ✘ | las tunas
-</option>
-
-<option value="santa-fe/maria-luisa.html" style="color: darkred;">
-    ✘ | maría luisa
-</option>
-
-<option value="santa-fe/matilde.html" style="color: darkred;">
-    ✘ | matilde
-</option>
-
-<option value="santa-fe/nuevo-torino.html" style="color: darkred;">
-    ✘ | nuevo torino
+<option value="santa-fe/piamonte.html" style="color: darkred;">
+    ✘ | piamonte
 </option>
 
 <option value="santa-fe/pilar.html" style="color: darkred;">
     ✘ | pilar
 </option>
 
+<option value="santa-fe/pinero.html" style="color: darkred;">
+    ✘ | piñero
+</option>
+
+<option value="santa-fe/plaza-clucellas.html" style="color: darkred;">
+    ✘ | plaza clucellas
+</option>
+
 <option value="santa-fe/plaza-matilde.html" style="color: darkred;">
     ✘ | plaza matilde
+</option>
+
+<option value="santa-fe/plaza-saguier.html" style="color: darkred;">
+    ✘ | plaza saguier
+</option>
+
+<option value="santa-fe/pozo-borrado.html" style="color: darkred;">
+    ✘ | pozo borrado
+</option>
+
+<option value="santa-fe/pozo-de-los-indios.html" style="color: darkred;">
+    ✘ | pozo de los indios
+</option>
+
+<option value="santa-fe/presidente-roca.html" style="color: darkred;">
+    ✘ | presidente roca
 </option>
 
 <option value="santa-fe/progreso.html" style="color: darkred;">
@@ -3131,12 +3249,124 @@
     ✘ | providencia
 </option>
 
+<option value="santa-fe/pueblo-andino.html" style="color: darkred;">
+    ✘ | pueblo andino
+</option>
+
+<option value="santa-fe/pueblo-esther.html" style="color: darkred;">
+    ✘ | pueblo esther
+</option>
+
+<option value="santa-fe/pueblo-marini.html" style="color: darkred;">
+    ✘ | pueblo marini
+</option>
+
+<option value="santa-fe/pueblo-munoz.html" style="color: darkred;">
+    ✘ | pueblo muñóz
+</option>
+
+<option value="santa-fe/pueblo-santa-lucia.html" style="color: darkred;">
+    ✘ | pueblo santa lucía
+</option>
+
+<option value="santa-fe/pueblo-uranga.html" style="color: darkred;">
+    ✘ | pueblo uranga
+</option>
+
+<option value="santa-fe/puerto-aragon.html" style="color: darkred;">
+    ✘ | puerto aragón
+</option>
+
+<option value="santa-fe/puerto-arroyo-seco.html" style="color: darkred;">
+    ✘ | puerto arroyo seco
+</option>
+
+<option value="santa-fe/puerto-general-san-martin.html" style="color: darkred;">
+    ✘ | puerto general san martín
+</option>
+
+<option value="santa-fe/puerto-reconquista.html" style="color: darkred;">
+    ✘ | puerto reconquista
+</option>
+
+<option value="santa-fe/pujato.html" style="color: darkred;">
+    ✘ | pujato
+</option>
+
+<option value="santa-fe/rafaela.html" style="color: darkred;">
+    ✘ | rafaela
+</option>
+
+<option value="santa-fe/ramayon.html" style="color: darkred;">
+    ✘ | ramayón
+</option>
+
+<option value="santa-fe/ramona.html" style="color: darkred;">
+    ✘ | ramona
+</option>
+
+<option value="santa-fe/reconquista.html" style="color: darkred;">
+    ✘ | reconquista
+</option>
+
+<option value="santa-fe/recreo.html" style="color: darkred;">
+    ✘ | recreo
+</option>
+
+<option value="santa-fe/ricardone.html" style="color: darkred;">
+    ✘ | ricardone
+</option>
+
+<option value="santa-fe/rincon-potrero.html" style="color: darkred;">
+    ✘ | rincón potrero
+</option>
+
+<option value="santa-fe/roldan.html" style="color: darkred;">
+    ✘ | roldán
+</option>
+
+<option value="santa-fe/romang.html" style="color: darkred;">
+    ✘ | romang
+</option>
+
+<option value="santa-fe/rosario.html" style="color: darkred;">
+    ✘ | rosario
+</option>
+
+<option value="santa-fe/rueda.html" style="color: darkred;">
+    ✘ | rueda
+</option>
+
+<option value="santa-fe/rufino.html" style="color: darkred;">
+    ✘ | rufino
+</option>
+
 <option value="santa-fe/sa-pereyra.html" style="color: darkred;">
     ✘ | sa pereyra
 </option>
 
+<option value="santa-fe/saladero-mariano-cabal.html" style="color: darkred;">
+    ✘ | saladero mariano cabal
+</option>
+
+<option value="santa-fe/salto-grande.html" style="color: darkred;">
+    ✘ | salto grande
+</option>
+
 <option value="santa-fe/san-agustin.html" style="color: darkred;">
     ✘ | san agustín
+</option>
+
+<option value="santa-fe/san-antonio.html" style="color: darkred;">
+    ✘ | san antonio
+</option>
+
+<option value="santa-fe/san-antonio-de-obligado.html" style="color: darkred;">
+    ✘ | san antonio de obligado
+</option>
+
+<option value="santa-fe/san-bernardo.html" style="color: darkred;">
+    ✘ | san bernardo
 </option>
 
 <option value="santa-fe/san-carlos-centro.html" style="color: darkred;">
@@ -3151,420 +3381,12 @@
     ✘ | san carlos sud
 </option>
 
-<option value="santa-fe/san-jeronimo-del-sauce.html" style="color: darkred;">
-    ✘ | san jerónimo del sauce
-</option>
-
-<option value="santa-fe/san-jeronimo-norte.html" style="color: darkred;">
-    ✘ | san jerónimo norte
-</option>
-
-<option value="santa-fe/san-mariano.html" style="color: darkred;">
-    ✘ | san mariano
-</option>
-
-<option value="santa-fe/santa-clara-de-buena-vista.html" style="color: darkred;">
-    ✘ | santa clara de buena vista
-</option>
-
-<option value="santa-fe/santo-domingo.html" style="color: darkred;">
-    ✘ | santo domingo
-</option>
-
-<option value="santa-fe/sarmiento.html" style="color: darkred;">
-    ✘ | sarmiento
-</option>
-
-<option value="santa-fe/esteban-rams.html" style="color: darkred;">
-    ✘ | esteban rams
-</option>
-
-<option value="santa-fe/gato-colorado.html" style="color: darkred;">
-    ✘ | gato colorado
-</option>
-
-<option value="santa-fe/gregoria-perez-de-denis.html" style="color: darkred;">
-    ✘ | gregoria pérez de denis
-</option>
-
-<option value="santa-fe/logrono.html" style="color: darkred;">
-    ✘ | logroño
-</option>
-
-<option value="santa-fe/montefiore.html" style="color: darkred;">
-    ✘ | montefiore
-</option>
-
-<option value="santa-fe/pozo-borrado.html" style="color: darkred;">
-    ✘ | pozo borrado
-</option>
-
-<option value="santa-fe/san-bernardo.html" style="color: darkred;">
-    ✘ | san bernardo
-</option>
-
-<option value="santa-fe/santa-margarita.html" style="color: darkred;">
-    ✘ | santa margarita
-</option>
-
-<option value="santa-fe/tostado.html" style="color: darkred;">
-    ✘ | tostado
-</option>
-
-<option value="santa-fe/villa-minetti.html" style="color: darkred;">
-    ✘ | villa minetti
-</option>
-
-<option value="santa-fe/acebal.html" style="color: darkred;">
-    ✘ | acébal
-</option>
-
-<option value="santa-fe/albarellos.html" style="color: darkred;">
-    ✘ | albarellos
-</option>
-
-<option value="santa-fe/alvarez.html" style="color: darkred;">
-    ✘ | álvarez
-</option>
-
-<option value="santa-fe/alvear.html" style="color: darkred;">
-    ✘ | alvear
-</option>
-
-<option value="santa-fe/arbilla.html" style="color: darkred;">
-    ✘ | arbilla
-</option>
-
-<option value="santa-fe/arminda.html" style="color: darkred;">
-    ✘ | arminda
-</option>
-
-<option value="santa-fe/arroyo-seco.html" style="color: darkred;">
-    ✘ | arroyo seco
-</option>
-
-<option value="santa-fe/carmen-del-sauce.html" style="color: darkred;">
-    ✘ | carmen del sauce
-</option>
-
-<option value="santa-fe/coronel-bogado.html" style="color: darkred;">
-    ✘ | coronel bogado
-</option>
-
-<option value="santa-fe/coronel-rodolfo-s-dominguez.html" style="color: darkred;">
-    ✘ | coronel rodolfo s. domínguez
-</option>
-
-<option value="santa-fe/cuatro-esquinas.html" style="color: darkred;">
-    ✘ | cuatro esquinas
-</option>
-
-<option value="santa-fe/el-caramelo.html" style="color: darkred;">
-    ✘ | el caramelo
-</option>
-
-<option value="santa-fe/fighiera.html" style="color: darkred;">
-    ✘ | fighiera
-</option>
-
-<option value="santa-fe/funes.html" style="color: darkred;">
-    ✘ | funes
-</option>
-
-<option value="santa-fe/general-lagos.html" style="color: darkred;">
-    ✘ | general lagos
-</option>
-
-<option value="santa-fe/granadero-baigorria.html" style="color: darkred;">
-    ✘ | granadero baigorria
-</option>
-
-<option value="santa-fe/ibarlucea.html" style="color: darkred;">
-    ✘ | ibarlucea
-</option>
-
-<option value="santa-fe/kilometro-101.html" style="color: darkred;">
-    ✘ | kilómetro 101
-</option>
-
-<option value="santa-fe/los-muchachos-la-alborada.html" style="color: darkred;">
-    ✘ | los muchachos - la alborada
-</option>
-
-<option value="santa-fe/monte-flores.html" style="color: darkred;">
-    ✘ | monte flores
-</option>
-
-<option value="santa-fe/perez.html" style="color: darkred;">
-    ✘ | pérez
-</option>
-
-<option value="santa-fe/pinero.html" style="color: darkred;">
-    ✘ | piñero
-</option>
-
-<option value="santa-fe/pueblo-esther.html" style="color: darkred;">
-    ✘ | pueblo esther
-</option>
-
-<option value="santa-fe/pueblo-munoz.html" style="color: darkred;">
-    ✘ | pueblo muñóz
-</option>
-
-<option value="santa-fe/pueblo-uranga.html" style="color: darkred;">
-    ✘ | pueblo uranga
-</option>
-
-<option value="santa-fe/puerto-arroyo-seco.html" style="color: darkred;">
-    ✘ | puerto arroyo seco
-</option>
-
-<option value="santa-fe/rosario.html" style="color: darkred;">
-    ✘ | rosario
-</option>
-
-<option value="santa-fe/soldini.html" style="color: darkred;">
-    ✘ | soldini
-</option>
-
-<option value="santa-fe/villa-amelia.html" style="color: darkred;">
-    ✘ | villa amelia
-</option>
-
-<option value="santa-fe/villa-del-plata.html" style="color: darkred;">
-    ✘ | villa del plata
-</option>
-
-<option value="santa-fe/villa-gobernador-galvez.html" style="color: darkred;">
-    ✘ | villa gobernador gálvez
-</option>
-
-<option value="santa-fe/zavalla.html" style="color: darkred;">
-    ✘ | zavalla
-</option>
-
-<option value="santa-fe/aguara-grande.html" style="color: darkred;">
-    ✘ | aguará grande
-</option>
-
-<option value="santa-fe/ambrosetti.html" style="color: darkred;">
-    ✘ | ambrosetti
-</option>
-
-<option value="santa-fe/arrufo.html" style="color: darkred;">
-    ✘ | arrufo
-</option>
-
-<option value="santa-fe/balneario-la-verde.html" style="color: darkred;">
-    ✘ | balneario la verde
-</option>
-
-<option value="santa-fe/capivara.html" style="color: darkred;">
-    ✘ | capivara
-</option>
-
-<option value="santa-fe/ceres.html" style="color: darkred;">
-    ✘ | ceres
-</option>
-
-<option value="santa-fe/colonia-ana.html" style="color: darkred;">
-    ✘ | colonia ana
-</option>
-
-<option value="santa-fe/colonia-bossi.html" style="color: darkred;">
-    ✘ | colonia bossi
-</option>
-
-<option value="santa-fe/colonia-rosa.html" style="color: darkred;">
-    ✘ | colonia rosa
-</option>
-
-<option value="santa-fe/constanza.html" style="color: darkred;">
-    ✘ | constanza
-</option>
-
-<option value="santa-fe/curupayti.html" style="color: darkred;">
-    ✘ | curupaytí
-</option>
-
-<option value="santa-fe/hersilia.html" style="color: darkred;">
-    ✘ | hersilia
-</option>
-
-<option value="santa-fe/huanqueros.html" style="color: darkred;">
-    ✘ | huanqueros
-</option>
-
-<option value="santa-fe/la-cabral.html" style="color: darkred;">
-    ✘ | la cabral
-</option>
-
-<option value="santa-fe/la-lucila.html" style="color: darkred;">
-    ✘ | la lucila
-</option>
-
-<option value="santa-fe/la-rubia.html" style="color: darkred;">
-    ✘ | la rubia
-</option>
-
-<option value="santa-fe/las-avispas.html" style="color: darkred;">
-    ✘ | las avispas
-</option>
-
-<option value="santa-fe/las-palmeras.html" style="color: darkred;">
-    ✘ | las palmeras
-</option>
-
-<option value="santa-fe/moises-ville.html" style="color: darkred;">
-    ✘ | moisés ville
-</option>
-
-<option value="santa-fe/monigotes.html" style="color: darkred;">
-    ✘ | monigotes
-</option>
-
-<option value="santa-fe/nanducita.html" style="color: darkred;">
-    ✘ | ñanducita
-</option>
-
-<option value="santa-fe/palacios.html" style="color: darkred;">
-    ✘ | palacios
-</option>
-
 <option value="santa-fe/san-cristobal.html" style="color: darkred;">
     ✘ | san cristóbal
 </option>
 
-<option value="santa-fe/san-guillermo.html" style="color: darkred;">
-    ✘ | san guillermo
-</option>
-
-<option value="santa-fe/santurce.html" style="color: darkred;">
-    ✘ | santurce
-</option>
-
-<option value="santa-fe/soledad.html" style="color: darkred;">
-    ✘ | soledad
-</option>
-
-<option value="santa-fe/suardi.html" style="color: darkred;">
-    ✘ | suardi
-</option>
-
-<option value="santa-fe/villa-saralegui.html" style="color: darkred;">
-    ✘ | villa saralegui
-</option>
-
-<option value="santa-fe/villa-trinidad.html" style="color: darkred;">
-    ✘ | villa trinidad
-</option>
-
-<option value="santa-fe/alejandra.html" style="color: darkred;">
-    ✘ | alejandra
-</option>
-
-<option value="santa-fe/cacique-ariacaiquin.html" style="color: darkred;">
-    ✘ | cacique ariacaiquín
-</option>
-
-<option value="santa-fe/colonia-duran.html" style="color: darkred;">
-    ✘ | colonia durán
-</option>
-
-<option value="santa-fe/la-brava.html" style="color: darkred;">
-    ✘ | la brava
-</option>
-
-<option value="santa-fe/romang.html" style="color: darkred;">
-    ✘ | romang
-</option>
-
-<option value="santa-fe/san-javier.html" style="color: darkred;">
-    ✘ | san javier
-</option>
-
-<option value="santa-fe/arocena.html" style="color: darkred;">
-    ✘ | arocena
-</option>
-
-<option value="santa-fe/balneario-monje.html" style="color: darkred;">
-    ✘ | balneario monje
-</option>
-
-<option value="santa-fe/barrancas.html" style="color: darkred;">
-    ✘ | barrancas
-</option>
-
-<option value="santa-fe/barrio-caima.html" style="color: darkred;">
-    ✘ | barrio caima
-</option>
-
-<option value="santa-fe/barrio-el-pacaa-barrio-comipini.html" style="color: darkred;">
-    ✘ | barrio el pacaá - barrio comipini
-</option>
-
-<option value="santa-fe/bernardo-de-irigoyen.html" style="color: darkred;">
-    ✘ | bernardo de irigoyen
-</option>
-
-<option value="santa-fe/casalegno.html" style="color: darkred;">
-    ✘ | casalegno
-</option>
-
-<option value="santa-fe/centeno.html" style="color: darkred;">
-    ✘ | centeno
-</option>
-
-<option value="santa-fe/coronda.html" style="color: darkred;">
-    ✘ | coronda
-</option>
-
-<option value="santa-fe/desvio-arijon.html" style="color: darkred;">
-    ✘ | desvío arijón
-</option>
-
-<option value="santa-fe/diaz.html" style="color: darkred;">
-    ✘ | díaz
-</option>
-
-<option value="santa-fe/gaboto.html" style="color: darkred;">
-    ✘ | gaboto
-</option>
-
-<option value="santa-fe/galvez.html" style="color: darkred;">
-    ✘ | gálvez
-</option>
-
-<option value="santa-fe/gessler.html" style="color: darkred;">
-    ✘ | gessler
-</option>
-
-<option value="santa-fe/irigoyen.html" style="color: darkred;">
-    ✘ | irigoyen
-</option>
-
-<option value="santa-fe/larrechea.html" style="color: darkred;">
-    ✘ | larrechea
-</option>
-
-<option value="santa-fe/loma-alta.html" style="color: darkred;">
-    ✘ | loma alta
-</option>
-
-<option value="santa-fe/lopez.html" style="color: darkred;">
-    ✘ | lópez
-</option>
-
-<option value="santa-fe/maciel.html" style="color: darkred;">
-    ✘ | maciel
-</option>
-
-<option value="santa-fe/monje.html" style="color: darkred;">
-    ✘ | monje
-</option>
-
-<option value="santa-fe/puerto-aragon.html" style="color: darkred;">
-    ✘ | puerto aragón
+<option value="santa-fe/san-eduardo.html" style="color: darkred;">
+    ✘ | san eduardo
 </option>
 
 <option value="santa-fe/san-eugenio.html" style="color: darkred;">
@@ -3575,6 +3397,10 @@
     ✘ | san fabián
 </option>
 
+<option value="santa-fe/san-francisco-de-santa-fe.html" style="color: darkred;">
+    ✘ | san francisco de santa fe
+</option>
+
 <option value="santa-fe/san-genaro.html" style="color: darkred;">
     ✘ | san genaro
 </option>
@@ -3583,60 +3409,212 @@
     ✘ | san genaro norte
 </option>
 
-<option value="santa-fe/angeloni.html" style="color: darkred;">
-    ✘ | angeloni
+<option value="santa-fe/san-gregorio.html" style="color: darkred;">
+    ✘ | san gregorio
 </option>
 
-<option value="santa-fe/cayastacito.html" style="color: darkred;">
-    ✘ | cayastacito
+<option value="santa-fe/san-guillermo.html" style="color: darkred;">
+    ✘ | san guillermo
 </option>
 
-<option value="santa-fe/colonia-dolores.html" style="color: darkred;">
-    ✘ | colonia dolores
+<option value="santa-fe/san-javier.html" style="color: darkred;">
+    ✘ | san javier
 </option>
 
-<option value="santa-fe/esther.html" style="color: darkred;">
-    ✘ | esther
+<option value="santa-fe/san-jeronimo-del-sauce.html" style="color: darkred;">
+    ✘ | san jerónimo del sauce
 </option>
 
-<option value="santa-fe/gobernador-crespo.html" style="color: darkred;">
-    ✘ | gobernador crespo
+<option value="santa-fe/san-jeronimo-norte.html" style="color: darkred;">
+    ✘ | san jerónimo norte
 </option>
 
-<option value="santa-fe/la-criolla.html" style="color: darkred;">
-    ✘ | la criolla
+<option value="santa-fe/san-jeronimo-sud.html" style="color: darkred;">
+    ✘ | san jerónimo sud
 </option>
 
-<option value="santa-fe/la-penca-y-caraguata.html" style="color: darkred;">
-    ✘ | la penca y caraguatá
+<option value="santa-fe/san-jorge.html" style="color: darkred;">
+    ✘ | san jorge
 </option>
 
-<option value="santa-fe/marcelino-escalada.html" style="color: darkred;">
-    ✘ | marcelino escalada
+<option value="santa-fe/san-jose-de-la-esquina.html" style="color: darkred;">
+    ✘ | san josé de la esquina
 </option>
 
-<option value="santa-fe/nare.html" style="color: darkred;">
-    ✘ | naré
-</option>
-
-<option value="santa-fe/pedro-gomez-cello.html" style="color: darkred;">
-    ✘ | pedro gómez cello
-</option>
-
-<option value="santa-fe/ramayon.html" style="color: darkred;">
-    ✘ | ramayón
+<option value="santa-fe/san-jose-del-rincon.html" style="color: darkred;">
+    ✘ | san josé del rincón
 </option>
 
 <option value="santa-fe/san-justo.html" style="color: darkred;">
     ✘ | san justo
 </option>
 
+<option value="santa-fe/san-lorenzo.html" style="color: darkred;">
+    ✘ | san lorenzo
+</option>
+
+<option value="santa-fe/san-mariano.html" style="color: darkred;">
+    ✘ | san mariano
+</option>
+
+<option value="santa-fe/san-martin-de-las-escobas.html" style="color: darkred;">
+    ✘ | san martín de las escobas
+</option>
+
 <option value="santa-fe/san-martin-norte.html" style="color: darkred;">
     ✘ | san martín norte
 </option>
 
+<option value="santa-fe/san-vicente.html" style="color: darkred;">
+    ✘ | san vicente
+</option>
+
+<option value="santa-fe/sancti-spiritu.html" style="color: darkred;">
+    ✘ | sancti spiritu
+</option>
+
+<option value="santa-fe/sanford.html" style="color: darkred;">
+    ✘ | sanford
+</option>
+
+<option value="santa-fe/santa-clara-de-buena-vista.html" style="color: darkred;">
+    ✘ | santa clara de buena vista
+</option>
+
+<option value="santa-fe/santa-clara-de-saguier.html" style="color: darkred;">
+    ✘ | santa clara de saguier
+</option>
+
+<option value="santa-fe/santa-fe.html" style="color: darkred;">
+    ✘ | santa fe
+</option>
+
+<option value="santa-fe/santa-isabel.html" style="color: darkred;">
+    ✘ | santa isabel
+</option>
+
+<option value="santa-fe/santa-margarita.html" style="color: darkred;">
+    ✘ | santa margarita
+</option>
+
+<option value="santa-fe/santa-rosa-de-calchines.html" style="color: darkred;">
+    ✘ | santa rosa de calchines
+</option>
+
+<option value="santa-fe/santa-teresa.html" style="color: darkred;">
+    ✘ | santa teresa
+</option>
+
+<option value="santa-fe/santo-domingo.html" style="color: darkred;">
+    ✘ | santo domingo
+</option>
+
+<option value="santa-fe/santo-tome.html" style="color: darkred;">
+    ✘ | santo tomé
+</option>
+
+<option value="santa-fe/santurce.html" style="color: darkred;">
+    ✘ | santurce
+</option>
+
+<option value="santa-fe/sargento-cabral.html" style="color: darkred;">
+    ✘ | sargento cabral
+</option>
+
+<option value="santa-fe/sarmiento.html" style="color: darkred;">
+    ✘ | sarmiento
+</option>
+
+<option value="santa-fe/sastre.html" style="color: darkred;">
+    ✘ | sastre
+</option>
+
+<option value="santa-fe/sauce-viejo.html" style="color: darkred;">
+    ✘ | sauce viejo
+</option>
+
+<option value="santa-fe/serodino.html" style="color: darkred;">
+    ✘ | serodino
+</option>
+
 <option value="santa-fe/silva.html" style="color: darkred;">
     ✘ | silva
+</option>
+
+<option value="santa-fe/soldini.html" style="color: darkred;">
+    ✘ | soldini
+</option>
+
+<option value="santa-fe/soledad.html" style="color: darkred;">
+    ✘ | soledad
+</option>
+
+<option value="santa-fe/stephenson.html" style="color: darkred;">
+    ✘ | stephenson
+</option>
+
+<option value="santa-fe/suardi.html" style="color: darkred;">
+    ✘ | suardi
+</option>
+
+<option value="santa-fe/sunchales.html" style="color: darkred;">
+    ✘ | sunchales
+</option>
+
+<option value="santa-fe/susana.html" style="color: darkred;">
+    ✘ | susana
+</option>
+
+<option value="santa-fe/tacuarendi.html" style="color: darkred;">
+    ✘ | tacuarendí
+</option>
+
+<option value="santa-fe/tacural.html" style="color: darkred;">
+    ✘ | tacural
+</option>
+
+<option value="santa-fe/tartagal.html" style="color: darkred;">
+    ✘ | tartagal
+</option>
+
+<option value="santa-fe/teodelina.html" style="color: darkred;">
+    ✘ | teodelina
+</option>
+
+<option value="santa-fe/theobald.html" style="color: darkred;">
+    ✘ | theobald
+</option>
+
+<option value="santa-fe/timbues.html" style="color: darkred;">
+    ✘ | timbúes
+</option>
+
+<option value="santa-fe/toba.html" style="color: darkred;">
+    ✘ | toba
+</option>
+
+<option value="santa-fe/tortugas.html" style="color: darkred;">
+    ✘ | tortugas
+</option>
+
+<option value="santa-fe/tostado.html" style="color: darkred;">
+    ✘ | tostado
+</option>
+
+<option value="santa-fe/totoras.html" style="color: darkred;">
+    ✘ | totoras
+</option>
+
+<option value="santa-fe/traill.html" style="color: darkred;">
+    ✘ | traill
+</option>
+
+<option value="santa-fe/venado-tuerto.html" style="color: darkred;">
+    ✘ | venado tuerto
+</option>
+
+<option value="santa-fe/vera.html" style="color: darkred;">
+    ✘ | vera
 </option>
 
 <option value="santa-fe/vera-y-pintado.html" style="color: darkred;">
@@ -3647,204 +3625,108 @@
     ✘ | videla
 </option>
 
-<option value="santa-fe/capitan-bermudez.html" style="color: darkred;">
-    ✘ | capitán bermúdez
+<option value="santa-fe/vila.html" style="color: darkred;">
+    ✘ | vila
 </option>
 
-<option value="santa-fe/carcarana.html" style="color: darkred;">
-    ✘ | carcarañá
+<option value="santa-fe/villa-amelia.html" style="color: darkred;">
+    ✘ | villa amelia
 </option>
 
-<option value="santa-fe/coronel-arnold.html" style="color: darkred;">
-    ✘ | coronel arnold
+<option value="santa-fe/villa-ana.html" style="color: darkred;">
+    ✘ | villa ana
 </option>
 
-<option value="santa-fe/fray-luis-beltran.html" style="color: darkred;">
-    ✘ | fray luis beltrán
+<option value="santa-fe/villa-canas.html" style="color: darkred;">
+    ✘ | villa cañás
 </option>
 
-<option value="santa-fe/fuentes.html" style="color: darkred;">
-    ✘ | fuentes
+<option value="santa-fe/villa-constitucion.html" style="color: darkred;">
+    ✘ | villa constitución
 </option>
 
-<option value="santa-fe/luis-palacios.html" style="color: darkred;">
-    ✘ | luis palacios
+<option value="santa-fe/villa-del-plata.html" style="color: darkred;">
+    ✘ | villa del plata
 </option>
 
-<option value="santa-fe/puerto-general-san-martin.html" style="color: darkred;">
-    ✘ | puerto general san martín
-</option>
-
-<option value="santa-fe/pujato.html" style="color: darkred;">
-    ✘ | pujato
-</option>
-
-<option value="santa-fe/ricardone.html" style="color: darkred;">
-    ✘ | ricardone
-</option>
-
-<option value="santa-fe/roldan.html" style="color: darkred;">
-    ✘ | roldán
-</option>
-
-<option value="santa-fe/san-jeronimo-sud.html" style="color: darkred;">
-    ✘ | san jerónimo sud
-</option>
-
-<option value="santa-fe/san-lorenzo.html" style="color: darkred;">
-    ✘ | san lorenzo
-</option>
-
-<option value="santa-fe/timbues.html" style="color: darkred;">
-    ✘ | timbúes
+<option value="santa-fe/villa-eloisa.html" style="color: darkred;">
+    ✘ | villa eloísa
 </option>
 
 <option value="santa-fe/villa-elvira.html" style="color: darkred;">
     ✘ | villa elvira
 </option>
 
+<option value="santa-fe/villa-gobernador-galvez.html" style="color: darkred;">
+    ✘ | villa gobernador gálvez
+</option>
+
+<option value="santa-fe/villa-guillermina.html" style="color: darkred;">
+    ✘ | villa guillermina
+</option>
+
+<option value="santa-fe/villa-josefina.html" style="color: darkred;">
+    ✘ | villa josefina
+</option>
+
+<option value="santa-fe/villa-la-rivera-oliveros.html" style="color: darkred;">
+    ✘ | villa la rivera (oliveros)
+</option>
+
+<option value="santa-fe/villa-la-rivera-pueblo-andino.html" style="color: darkred;">
+    ✘ | villa la rivera (pueblo andino)
+</option>
+
+<option value="santa-fe/villa-laura.html" style="color: darkred;">
+    ✘ | villa laura
+</option>
+
+<option value="santa-fe/villa-minetti.html" style="color: darkred;">
+    ✘ | villa minetti
+</option>
+
 <option value="santa-fe/villa-mugueta.html" style="color: darkred;">
     ✘ | villa mugueta
 </option>
 
-<option value="santa-fe/canada-rosquin.html" style="color: darkred;">
-    ✘ | cañada rosquín
+<option value="santa-fe/villa-ocampo.html" style="color: darkred;">
+    ✘ | villa ocampo
 </option>
 
-<option value="santa-fe/carlos-pellegrini.html" style="color: darkred;">
-    ✘ | carlos pellegrini
+<option value="santa-fe/villa-san-jose.html" style="color: darkred;">
+    ✘ | villa san josé
 </option>
 
-<option value="santa-fe/casas.html" style="color: darkred;">
-    ✘ | casas
+<option value="santa-fe/villa-saralegui.html" style="color: darkred;">
+    ✘ | villa saralegui
 </option>
 
-<option value="santa-fe/castelar.html" style="color: darkred;">
-    ✘ | castelar
+<option value="santa-fe/villa-trinidad.html" style="color: darkred;">
+    ✘ | villa trinidad
 </option>
 
-<option value="santa-fe/colonia-belgrano.html" style="color: darkred;">
-    ✘ | colonia belgrano
+<option value="santa-fe/villada.html" style="color: darkred;">
+    ✘ | villada
 </option>
 
-<option value="santa-fe/crispi.html" style="color: darkred;">
-    ✘ | crispi
+<option value="santa-fe/virginia.html" style="color: darkred;">
+    ✘ | virginia
 </option>
 
-<option value="santa-fe/el-trebol.html" style="color: darkred;">
-    ✘ | el trébol
-</option>
-
-<option value="santa-fe/landeta.html" style="color: darkred;">
-    ✘ | landeta
-</option>
-
-<option value="santa-fe/las-bandurrias.html" style="color: darkred;">
-    ✘ | las bandurrias
-</option>
-
-<option value="santa-fe/las-petacas.html" style="color: darkred;">
-    ✘ | las petacas
-</option>
-
-<option value="santa-fe/los-cardos.html" style="color: darkred;">
-    ✘ | los cardos
-</option>
-
-<option value="santa-fe/maria-susana.html" style="color: darkred;">
-    ✘ | maría susana
-</option>
-
-<option value="santa-fe/piamonte.html" style="color: darkred;">
-    ✘ | piamonte
-</option>
-
-<option value="santa-fe/san-jorge.html" style="color: darkred;">
-    ✘ | san jorge
-</option>
-
-<option value="santa-fe/san-martin-de-las-escobas.html" style="color: darkred;">
-    ✘ | san martín de las escobas
-</option>
-
-<option value="santa-fe/sastre.html" style="color: darkred;">
-    ✘ | sastre
-</option>
-
-<option value="santa-fe/traill.html" style="color: darkred;">
-    ✘ | traill
+<option value="santa-fe/wheelwright.html" style="color: darkred;">
+    ✘ | wheelwright
 </option>
 
 <option value="santa-fe/wildermuth.html" style="color: darkred;">
     ✘ | wildermuth
 </option>
 
-<option value="santa-fe/calchaqui.html" style="color: darkred;">
-    ✘ | calchaquí
+<option value="santa-fe/zavalla.html" style="color: darkred;">
+    ✘ | zavalla
 </option>
 
-<option value="santa-fe/canada-ombu.html" style="color: darkred;">
-    ✘ | cañada ombú
-</option>
-
-<option value="santa-fe/colmena.html" style="color: darkred;">
-    ✘ | colmena
-</option>
-
-<option value="santa-fe/fortin-olmos.html" style="color: darkred;">
-    ✘ | fortín olmos
-</option>
-
-<option value="santa-fe/garabato.html" style="color: darkred;">
-    ✘ | garabato
-</option>
-
-<option value="santa-fe/golondrina.html" style="color: darkred;">
-    ✘ | golondrina
-</option>
-
-<option value="santa-fe/intiyaco.html" style="color: darkred;">
-    ✘ | intiyaco
-</option>
-
-<option value="santa-fe/kilometro-115.html" style="color: darkred;">
-    ✘ | kilómetro 115
-</option>
-
-<option value="santa-fe/la-gallareta.html" style="color: darkred;">
-    ✘ | la gallareta
-</option>
-
-<option value="santa-fe/los-amores.html" style="color: darkred;">
-    ✘ | los amores
-</option>
-
-<option value="santa-fe/margarita.html" style="color: darkred;">
-    ✘ | margarita
-</option>
-
-<option value="santa-fe/paraje-29.html" style="color: darkred;">
-    ✘ | paraje 29
-</option>
-
-<option value="santa-fe/pozo-de-los-indios.html" style="color: darkred;">
-    ✘ | pozo de los indios
-</option>
-
-<option value="santa-fe/pueblo-santa-lucia.html" style="color: darkred;">
-    ✘ | pueblo santa lucía
-</option>
-
-<option value="santa-fe/tartagal.html" style="color: darkred;">
-    ✘ | tartagal
-</option>
-
-<option value="santa-fe/toba.html" style="color: darkred;">
-    ✘ | toba
-</option>
-
-<option value="santa-fe/vera.html" style="color: darkred;">
-    ✘ | vera
+<option value="santa-fe/zenon-pereyra.html" style="color: darkred;">
+    ✘ | zenón pereyra
 </option>
 
 
@@ -3856,7 +3738,7 @@
         <a href="terminos-y-condiciones.html">Términos y Condiciones</a>.
       </div>
       `;
-    abrirModal(html);
+    abrirModal(html, "buscar");
 
       inicializarSelect2("#localidades", "Buscar localidad");
   }

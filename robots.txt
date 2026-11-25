@@ -1,1 +1,4 @@
+User-agent: *
 Disallow: /*?from=
+
+Sitemap: https://www.plomero.net.ar/sitemap.xml

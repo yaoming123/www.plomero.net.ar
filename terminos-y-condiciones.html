@@ -34,14 +34,29 @@
       </script>
 
 
-<script>(function (w, d, s, l, i) {
-        w[l] = w[l] || []; w[l].push({
-            'gtm.start':
-                new Date().getTime(), event: 'gtm.js'
-        }); var f = d.getElementsByTagName(s)[0],
-            j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
-                'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
-    })(window, document, 'script', 'dataLayer', 'GTM-W4NSZ7JP');</script>
+<script>
+    (function (w, d) {
+        var propio = 'plomero.net.ar', clave = 'analitica', eleccion = null;
+        try {
+            var pedido = new URLSearchParams(location.search).get(clave);
+            if (pedido === 'si' || pedido === 'no') localStorage.setItem(clave, pedido);
+            else if (pedido === 'auto') localStorage.removeItem(clave);
+            eleccion = localStorage.getItem(clave);
+        } catch (e) { /* sin localStorage: se decide solo por el dominio */ }
+
+        var enDominio = location.hostname.replace(/^www\./, '') === propio;
+        var medir = eleccion ? eleccion === 'si' : enDominio;
+        w.__analitica = { medir: medir, por: eleccion ? 'eleccion_' + eleccion : (enDominio ? 'dominio' : 'otro_dominio') };
+        if (!medir) return;
+
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+        var s = d.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtm.js?id=GTM-W4NSZ7JP';
+        d.head.appendChild(s);
+    })(window, document);
+</script>
     
 </head>
 
@@ -116,17 +131,27 @@
 
                 <section class="scroll-section terminos-y-condiciones-section">
                     <h2>6. Uso de Herramientas de Análisis</h2>
-                    <p>Este sitio utiliza herramientas como <strong>Google Analytics</strong> para analizar el tráfico y
-                        mejorar la experiencia del usuario.</p>
+                    <p>Este sitio utiliza <strong>Google Analytics</strong> (a través de Google Tag Manager) y
+                        <strong>Microsoft Clarity</strong> para analizar el tráfico y mejorar la experiencia del usuario.</p>
+                    <p>Microsoft Clarity registra de forma anónima cómo se usa el sitio (clics, desplazamiento y
+                        movimientos dentro de la página) para generar mapas de calor y grabaciones de la navegación.
+                        <strong>Lo que se escribe en el formulario para anunciantes se oculta y no queda registrado.</strong></p>
                     <h3>Privacidad de los Datos</h3>
-                    <p>No se recopilan datos personales que permitan identificar a los usuarios directamente.</p>
+                    <p>No se recopilan datos personales que permitan identificar a los usuarios directamente. Estas
+                        herramientas pueden usar cookies y datos técnicos del navegador (tipo de dispositivo, navegador y
+                        ubicación aproximada).</p>
                     <p>Los datos se procesan de manera anónima y agregada, con fines estadísticos como:</p>
                     <ul>
                         <li>Número de visitas</li>
                         <li>Secciones más consultadas</li>
                         <li>Origen del tráfico</li>
                         <li>Interacción con botones</li>
+                        <li>Recorrido y uso de las páginas</li>
                     </ul>
+                    <p>Más información en la
+                        <a href="https://policies.google.com/technologies/partner-sites?hl=es" target="_blank" rel="noopener noreferrer nofollow">política de Google</a>
+                        y en la
+                        <a href="https://privacy.microsoft.com/es-es/privacystatement" target="_blank" rel="noopener noreferrer nofollow">declaración de privacidad de Microsoft</a>.</p>
                 </section>
 
                 <section class="scroll-section terminos-y-condiciones-section">

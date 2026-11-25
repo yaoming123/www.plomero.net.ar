@@ -6,28 +6,51 @@
 window.dataLayer = window.dataLayer || [];
 window.formEnviado = false;
 
-/* Links de navegación restantes, Términos y pie de página */
+/* =====================================================================
+   MARCAS EN LAS PLANTILLAS (no depender de los textos de los botones)
+   - data-medir="evento"   el elemento dispara ese evento al hacer clic
+   - data-cierre="metodo"  el botón cierra el modal (boton / cancelar)
+   - #modal[data-tipo]     qué modal está abierto (lo pone abrirModal(html, tipo))
+   Cambiar un texto o un emoji de un botón ya no rompe la medición.
+   ===================================================================== */
+function texto(el) {
+    return ((el && (el.textContent.trim() || el.getAttribute('aria-label'))) || '').substring(0, 60);
+}
+
+function zonaDelClic(el) {
+    return el.closest('nav') ? 'nav' : el.closest('footer') ? 'pie' : el.closest('#modal') ? 'modal'
+         : el.closest('#formulario-publicidad') ? 'formulario' : 'pagina';
+}
+
+/* Parámetros de cada evento marcado con data-medir. Los de contacto (confirmado/cancelado)
+   se miden en el listener de clics principal, porque dependen de window.ultimoContacto. */
+const PARAMS_MEDIR = {
+    click_nav_buscar: el => ({ categoria: 'navegacion', accion: 'nav_buscar', etiqueta: texto(el), origen: zonaDelClic(el) }),
+    click_buscar_modal: el => {
+        const ctx = contextoContacto();
+        return Object.assign({ categoria: 'busqueda', accion: 'buscar_modal', etiqueta: texto(el),
+                               origen: ctx.canal ? 'modal_contacto' : 'modal' }, ctx);
+    },
+    click_copiar_info:       el => Object.assign({ categoria: 'modal', accion: 'copiar_info', etiqueta: texto(el) }, contextoContacto()),
+    click_descargar_info:    el => Object.assign({ categoria: 'modal', accion: 'descargar_info', etiqueta: texto(el) }, contextoContacto()),
+    click_reportar_problema: el => Object.assign({ categoria: 'modal', accion: 'reportar_problema', etiqueta: texto(el) }, contextoContacto())
+};
+
+document.addEventListener('click', function (e) {
+    const el = e.target.closest && e.target.closest('[data-medir]');
+    const armar = el && PARAMS_MEDIR[el.dataset.medir];
+    if (armar) track(el.dataset.medir, armar(el));
+}, true);
+
+/* Links de navegación restantes, Términos y pie de página (se reconocen por su href y su lugar) */
 document.addEventListener('click', function (e) {
     const a = e.target.closest && e.target.closest('a');
-    if (!a) return;
+    if (!a || a.dataset.medir) return;
     const href = a.getAttribute('href') || '';
     const enNav = !!a.closest('nav'), enPie = !!a.closest('footer');
     let ev = null;
 
-    /* "🔍 ¡Encontrar plomero!" dentro de un modal (el del menú ya se mide abajo como click_nav_buscar) */
-    if (a.closest('#modal') && /mostrarModalBuscarProveedor/.test(a.getAttribute('onclick') || '')) {
-        const ctx = contextoContacto();
-        track('click_buscar_modal', Object.assign({
-            categoria: 'busqueda',
-            accion: 'buscar_modal',
-            etiqueta: a.textContent.trim().substring(0, 60),
-            origen: ctx.canal ? 'modal_contacto' : 'modal'
-        }, ctx));
-        return;
-    }
-
     if (/terminos-y-condiciones/.test(href)) ev = 'click_terminos';
-    else if (enNav && /mostrarModalBuscarProveedor/.test(a.getAttribute('onclick') || '')) ev = 'click_nav_buscar';
     else if (enNav && href && href[0] !== '#') ev = 'click_nav_zona_padre';
     else if (enPie && /facebook\.com/.test(href)) ev = 'click_facebook_pie';
     else if (enPie) ev = 'click_inicio_pie';
@@ -36,9 +59,8 @@ document.addEventListener('click', function (e) {
         track(ev, {
             categoria: 'navegacion',
             accion: ev.replace('click_', ''),
-            etiqueta: a.textContent.trim().substring(0, 60),
-            origen: enNav ? 'nav' : enPie ? 'pie' : a.closest('#modal') ? 'modal'
-                  : a.closest('#formulario-publicidad') ? 'formulario' : 'pagina'
+            etiqueta: texto(a),
+            origen: zonaDelClic(a)
         });
     }
 }, true);
@@ -119,10 +141,23 @@ function getSeccionInfo() {
 }
 
 /* ---------- Función base: todo pasa por acá ---------- */
+/* Si GTM no se cargó en esta página (otro dominio, ?analitica=no, o generado con --sin-analytics),
+   el evento igual va al dataLayer (no sale a ningún lado) y además se muestra en la consola,
+   para poder probar la medición sin mandar nada a GA4. */
+function seMideAca() {
+    return !!(window.__analitica && window.__analitica.medir);
+}
+
 function track(nombre, params) {
     const base = {};
     VOLATILES.forEach(k => { base[k] = undefined; });
-    window.dataLayer.push(Object.assign(base, { event: nombre }, getSeccionInfo(), params || {}));
+    const datos = Object.assign(base, { event: nombre }, getSeccionInfo(), params || {});
+    window.dataLayer.push(datos);
+    if (!seMideAca() && window.console) {
+        const visibles = {};
+        Object.keys(datos).forEach(k => { if (datos[k] !== undefined && datos[k] !== '' && k !== 'event') visibles[k] = datos[k]; });
+        console.info('📊 [sin enviar] ' + nombre, visibles);
+    }
 }
 
 /* ---------- Compatibilidad con el HTML actual ---------- */
@@ -158,24 +193,31 @@ function canalDeUrl(url) {
     return 'otro';
 }
 
+/* Canal de un enlace: el sitio web del anunciante se reconoce por su clase (su URL puede ser cualquiera) */
+function canalDe(a) {
+    if (a.classList && a.classList.contains('btn-sitio-web')) return 'sitio_web';
+    return canalDeUrl(a.href);
+}
+
 /* Evento que se dispara al hacer clic en un enlace de contacto, según el canal */
 const EVENTO_CANAL = {
     whatsapp:  'click_whatsapp',
     instagram: 'click_instagram',
     facebook:  'click_facebook',
-    mapa:      'click_mapa'
+    mapa:      'click_mapa',
+    sitio_web: 'click_sitio_web'
 };
 
 function esCanalDeContacto(a) {
     const href = a.getAttribute('href') || '';
     if (/^tel:/i.test(href)) return true;
     if (!(a.closest('#contacto') || a.closest('.servicio'))) return false;
-    return canalDeUrl(a.href) !== 'otro';
+    return canalDe(a) !== 'otro';
 }
 
-function modalTieneContinuar() {
-    return Array.from(document.querySelectorAll('#modal button'))
-        .some(b => /continuar/i.test(b.textContent));
+/* Modal de aviso antes de contactar (el que tiene Continuar / Cancelar) */
+function esModalDeContacto() {
+    return tipoModal() === 'contacto';
 }
 
 /* ---------- Helpers ---------- */
@@ -200,7 +242,8 @@ function verUnaVez(selector, nombre, params) {
 /* =====================================================================
    NUEVOS EVENTOS
    - click_anunciar_aqui   (botón "¡Anunciá aquí!" de la página y de los modales)
-   - click_copiar_info / click_descargar_info / click_reportar_problema (modal con anunciante)
+   - click_copiar_info / click_descargar_info / click_reportar_problema: ver PARAMS_MEDIR (data-medir)
+   - click_sitio_web       (botón "Visitá nuestro sitio web" del anunciante, en contacto)
    - modal_cerrar          (cualquier modal: X, botón Cerrar/Cancelar, clic afuera, Escape)
    - galeria_cerrar        (galería ampliada: X, clic afuera, Escape)
    - form_limpiar          (botón "Limpiar formulario")
@@ -209,36 +252,18 @@ function verUnaVez(selector, nombre, params) {
    necesita leer window.ultimoContacto antes de que ese listener lo ponga en null.
    ===================================================================== */
 
-/* Detecta "¡Anunciá aquí!", "¡Anunciate aquí!", "Anuncia aquí", etc. */
-const RE_ANUNCIAR = /an[uú]nci(?:a|á|ate|áte)\s+aqu[ií]/i;
-
-/* Acciones de abajo del modal con anunciante */
-const ACCIONES_MODAL = [
-    { re: /copiar/i,    evento: 'click_copiar_info',       accion: 'copiar_info' },
-    { re: /descargar/i, evento: 'click_descargar_info',    accion: 'descargar_info' },
-    { re: /reportar/i,  evento: 'click_reportar_problema', accion: 'reportar_problema' }
-];
-
 /* Canal y servicio del contacto que abrió el modal (solo si es un modal de contacto) */
 function contextoContacto() {
     const c = window.ultimoContacto;
-    return (c && modalTieneContinuar())
-        ? { canal: canalDeUrl(c.url), servicio: c.servicio }
+    return (c && esModalDeContacto())
+        ? { canal: c.canal || canalDeUrl(c.url), servicio: c.servicio }
         : {};
 }
 
-/* Qué modal es, según su contenido */
+/* Qué modal está abierto: lo marca abrirModal(html, tipo) en #modal[data-tipo] */
 function tipoModal() {
-    if (modalTieneContinuar()) return 'contacto';
-    if (document.getElementById('loader')) return 'cargando';
-    const h = document.getElementById('modal-title');
-    const titulo = h ? h.textContent : '';
-    if (/Buscar plomero/i.test(titulo)) return 'buscar';
-    if (/Proveedores Cercanos/i.test(titulo)) return 'resultados';
-    if (/Geolocalizaci/i.test(titulo)) return 'sin_resultados';
-    if (/Error en la B/i.test(titulo)) return 'error';
-    if (/Aviso/i.test(titulo)) return 'aviso';
-    return 'otro';
+    const m = document.getElementById('modal');
+    return (m && m.dataset.tipo) || 'otro';
 }
 
 function modalAbierto() {
@@ -259,9 +284,9 @@ document.addEventListener('click', function (e) {
     const t = e.target;
     if (!t || !t.closest) return;
 
-    /* 1) "¡Anunciá aquí!" (botón de arriba de todo y botones dentro de los modales) */
-    const cand = t.closest('a, button');
-    if (cand && (cand.matches('a[href*="#formulario-publicidad"]') || RE_ANUNCIAR.test(cand.textContent))) {
+    /* 1) "¡Anunciá aquí!": todos los botones llevan al formulario (#formulario-publicidad) */
+    const cand = t.closest('a[href*="#formulario-publicidad"]');
+    if (cand) {
         let extra;
         if (!cand.closest('#modal')) {
             extra = { origen: 'pagina' };
@@ -278,21 +303,7 @@ document.addEventListener('click', function (e) {
         }, extra));
     }
 
-    /* 2) Copiar / Descargar / Reportar (modal con anunciante) */
-    const linkModal = t.closest('#modal a');
-    if (linkModal) {
-        const txt = linkModal.textContent;
-        const a = ACCIONES_MODAL.find(x => x.re.test(txt));
-        if (a) {
-            track(a.evento, Object.assign({
-                categoria: 'modal',
-                accion: a.accion,
-                etiqueta: txt.trim().substring(0, 60)
-            }, contextoContacto()));
-        }
-    }
-
-    /* 3) Cierre de modales (Continuar NO cuenta como cierre: es una confirmación) */
+    /* 2) Cierre de modales (Continuar NO cuenta como cierre: es una confirmación) */
     if (modalAbierto()) {
         let metodo = null;
         if (t.id === 'modal') {
@@ -300,10 +311,8 @@ document.addEventListener('click', function (e) {
         } else if (t.closest('#modal-close-btn')) {
             metodo = 'x';
         } else {
-            const b = t.closest('#modal button');
-            if (b && !/continuar/i.test(b.textContent) && /cancelar|cerrar/i.test(b.textContent)) {
-                metodo = /cancelar/i.test(b.textContent) ? 'cancelar' : 'boton';
-            }
+            const b = t.closest('#modal [data-cierre]');
+            if (b) metodo = b.dataset.cierre;
         }
         if (metodo) {
             track('modal_cerrar', Object.assign(
@@ -313,13 +322,13 @@ document.addEventListener('click', function (e) {
         }
     }
 
-    /* 4) Cierre de la galería ampliada */
+    /* 3) Cierre de la galería ampliada */
     if (galeriaAbierta()) {
         if (t.closest('#modalFoto .cerrar')) trackCierreGaleria('boton');
         else if (t.id === 'modalFoto') trackCierreGaleria('fuera');
     }
 
-    /* 5) Limpiar formulario */
+    /* 4) Limpiar formulario */
     if (t.closest('#clear-form-button')) {
         track('form_limpiar', { form: 'publicidad' });
     }
@@ -362,17 +371,12 @@ document.addEventListener('click', function (e) {
     const t = e.target;
     if (!t || !t.closest) return;
 
-    /* 1) Botones del modal de advertencia: Continuar / Cancelar */
-    const btnModal = t.closest('#modal button');
-    if (btnModal && window.ultimoContacto && modalTieneContinuar()) {
+    /* 1) Botones del modal de advertencia: Continuar / Cancelar (data-medir en modal.html) */
+    const btnModal = t.closest('#modal [data-medir="contacto_confirmado"], #modal [data-medir="contacto_cancelado"]');
+    if (btnModal && window.ultimoContacto) {
         const c = window.ultimoContacto;
-        if (/continuar/i.test(btnModal.textContent)) {
-            track('contacto_confirmado', { canal: canalDeUrl(c.url), servicio: c.servicio });
-            window.ultimoContacto = null;
-        } else if (/cancelar/i.test(btnModal.textContent)) {
-            track('contacto_cancelado', { canal: canalDeUrl(c.url), servicio: c.servicio });
-            window.ultimoContacto = null;
-        }
+        track(btnModal.dataset.medir, { canal: c.canal || canalDeUrl(c.url), servicio: c.servicio });
+        window.ultimoContacto = null;
         return;
     }
 
@@ -381,10 +385,11 @@ document.addEventListener('click', function (e) {
     if (a && !a.closest('#modal') && esCanalDeContacto(a)) {
         window.ultimoContacto = {
             url: a.href,
+            canal: canalDe(a),
             servicio: a.getAttribute('data-servicio') || 'Contacto general'
         };
         const origenContacto = a.closest('#contacto') ? 'contacto' : a.closest('.servicio') ? 'servicios' : 'pagina';
-        const canal = canalDeUrl(a.href);
+        const canal = canalDe(a);
         /* Si el enlace ya mide por su cuenta (onclick con trackEvent / trackDynamicWhatsAppClick), no se duplica */
         const midePorSuCuenta = /trackEvent\s*=?\s*\(|trackDynamicWhatsAppClick/.test(a.getAttribute('onclick') || '');
 
@@ -412,12 +417,11 @@ document.addEventListener('click', function (e) {
             const inp = card && card.querySelector('input[type="text"]');
             const nombre = (card && card.classList.contains('custom'))
                 ? '(nuevo)' : (inp ? inp.value.slice(0, 80) : '');
-            track(/eliminar/i.test(ed.textContent) ? 'servicios_eliminar' : 'servicios_mantener',
+            /* data-accion = lo que va a hacer el clic (lo pone updateCardState en el formulario) */
+            track(ed.dataset.accion === 'mantener' ? 'servicios_mantener' : 'servicios_eliminar',
                 { servicio: nombre });
         } else if (ed.classList.contains('btn-restore')) {
             track('servicios_restaurar');
-        } else if (ed.title === 'Subir' || ed.title === 'Bajar') {
-            if (limitado('servicios_mover', 20)) track('servicios_mover', { direccion: ed.title.toLowerCase() });
         }
     }
 

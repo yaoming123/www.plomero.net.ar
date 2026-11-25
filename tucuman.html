@@ -75,17 +75,30 @@
 </script>
 
 
-<script>(function (w, d, s, l, i) {
-        w[l] = w[l] || []; w[l].push({
-            'gtm.start':
-                new Date().getTime(), event: 'gtm.js'
-        }); var f = d.getElementsByTagName(s)[0],
-            j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
-                'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
-    })(window, document, 'script', 'dataLayer', 'GTM-W4NSZ7JP');</script>
+<script>
+    (function (w, d) {
+        var propio = 'plomero.net.ar', clave = 'analitica', eleccion = null;
+        try {
+            var pedido = new URLSearchParams(location.search).get(clave);
+            if (pedido === 'si' || pedido === 'no') localStorage.setItem(clave, pedido);
+            else if (pedido === 'auto') localStorage.removeItem(clave);
+            eleccion = localStorage.getItem(clave);
+        } catch (e) { /* sin localStorage: se decide solo por el dominio */ }
 
-    <link rel="stylesheet" href="votacion.css">
-    <script defer src="votacion.js"></script>
+        var enDominio = location.hostname.replace(/^www\./, '') === propio;
+        var medir = eleccion ? eleccion === 'si' : enDominio;
+        w.__analitica = { medir: medir, por: eleccion ? 'eleccion_' + eleccion : (enDominio ? 'dominio' : 'otro_dominio') };
+        if (!medir) return;
+
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+        var s = d.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtm.js?id=GTM-W4NSZ7JP';
+        d.head.appendChild(s);
+    })(window, document);
+</script>
+
 </head>
 
 <body>
@@ -121,7 +134,7 @@
             <a href="index.html">🗺️ Plomeros en Argentina</a>
         </li>
         <li>
-            <a onclick="mostrarModalBuscarProveedor()">🔍 Encontrar Plomeros</a>
+            <a data-medir="click_nav_buscar" onclick="mostrarModalBuscarProveedor()">🔍 Encontrar Plomeros</a>
         </li>
         <li>
             <a href="terminos-y-condiciones.html">📋 Términos y Condiciones</a>
@@ -332,6 +345,8 @@
         </div>
 
 </div>
+
+
         </div>
     </header>
 
@@ -811,7 +826,7 @@
                     ¿Ofrecés servicios de plomería?? <strong>¡Este espacio está disponible, anunciate aquí!</strong>
                 </p>
 
-                <form id="whatsapp-form" novalidate>
+                <form id="whatsapp-form" novalidate data-clarity-mask="true">
 
                     <input id="section" name="section" value="https://www.plomero.net.ar/tucuman.html" readonly
                         style="display:none;">
@@ -1689,7 +1704,9 @@
         else if (s.custom)      { badge.className = 'svc-badge custom';  badge.textContent = '➕ Nuevo';         badge.style.display = ''; }
         else if (isEdited(s))   { badge.className = 'svc-badge edited';  badge.textContent = '✏️ Editado';       badge.style.display = ''; }
         else                    { badge.style.display = 'none'; }
-        card.querySelector('.btn-toggle').textContent = s.removed ? '↩️ Mantener' : '🗑️ Eliminar';
+        const toggle = card.querySelector('.btn-toggle');
+        toggle.textContent = s.removed ? '↩️ Mantener' : '🗑️ Eliminar';
+        toggle.dataset.accion = s.removed ? 'mantener' : 'eliminar';   // lo lee tracking.js
         const restore = card.querySelector('.btn-restore');
         if (restore) restore.style.display = isEdited(s) && !s.removed ? '' : 'none';
     }
@@ -1875,54 +1892,6 @@
 </footer>
 
 
-<script>
-  // Copiar datos del proveedor
-  function copiarDatosProveedor() {
-    const nombre = document.getElementById('modal-nombre')?.textContent || 'No disponible';
-    const telefono = document.getElementById('modal-telefono')?.textContent || 'No disponible';
-    const ubicacion = document.getElementById('modal-ubicacion')?.textContent || 'No disponible';
-    const pagado = document.getElementById('modal-pagado')?.textContent || 'No disponible';
-
-    const datos = `Nombre: ${nombre}
-    Teléfono: ${telefono}
-    Ubicación: ${ubicacion}
-    Pagado por: ${pagado}
-    Fuente: plomero.net.ar`;
-
-    navigator.clipboard.writeText(datos).then(() => {
-      alert('✅ Datos copiados al portapapeles');
-    }).catch(() => {
-      alert('No se pudo copiar. Intenta nuevamente.');
-    });
-  }
-
-  // Descargar modal como imagen
-  function descargarModalImagen() {
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.8/dist/html2canvas-pro.min.js';
-    script.onload = function () {
-      const modalContent = document.getElementById('modal-content');
-      html2canvas(modalContent, {
-        backgroundColor: '#ffffff',
-        scale: 2,
-        allowTaint: true,
-        useCORS: true
-      }).then(canvas => {
-        const link = document.createElement('a');
-        const nombre = document.getElementById('modal-nombre')?.textContent || 'proveedor';
-        const fecha = new Date().toLocaleDateString('es-AR');
-        link.href = canvas.toDataURL('image/png');
-        link.download = `${nombre}_${fecha}.png`;
-        link.click();
-      }).catch(error => {
-        console.error('Error al descargar:', error);
-        alert('No se pudo descargar la imagen. Intenta nuevamente.');
-      });
-    };
-    document.head.appendChild(script);
-  }
-
-</script>
 <div id="modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
   <div class="modal-contenido">
     <img src="logo.png" class="animation_back_in_rigth" alt="logotipo" loading="lazy" style="width: 15rem; height: 15rem;">
@@ -1949,8 +1918,9 @@
     abortController = null;
   }
 
-  function abrirModal(html) {
+  function abrirModal(html, tipo) {
     modalContent.innerHTML = html;
+    modal.dataset.tipo = tipo || "otro";
     modal.classList.add("active");
   }
 
@@ -1971,14 +1941,14 @@
     `;
 
     if (url) {
-      html += `<button class="button" onclick="window.open('${url}', '_blank'); cerrarModal();">✅ Continuar</button>`;
+      html += `<button class="button" data-medir="contacto_confirmado" onclick="window.open('${url}', '_blank'); cerrarModal();">✅ Continuar</button>`;
     }
     
     html += `
-        <button class="button button-danger" onclick="cerrarModal();">❌ Cancelar</button>
+        <button class="button button-danger" data-medir="contacto_cancelado" data-cierre="cancelar" onclick="cerrarModal();">❌ Cancelar</button>
       </div>
             <div style="margin: 1.5rem 0;">
-        <a class="button" onclick="mostrarModalBuscarProveedor()">🔍 ¡Encontrar plomero!</a>
+        <a class="button" data-medir="click_buscar_modal" onclick="mostrarModalBuscarProveedor()">🔍 ¡Encontrar plomero!</a>
         <button class="button" onclick="compartirSeccion();">🗣️ Compartir a un plomero conocido</button>
       </div>
       <div class="modal-legal">
@@ -1987,97 +1957,9 @@
       </div>
     `;
 
-    abrirModal(html);
+    abrirModal(html, url ? "contacto" : "aviso");
   }
   
-  function mostrarModalAdvertenciaDemo(titulo, mensaje, url = null) {
-      let html = `       
-        <h1 id="modal-title">${titulo}</h1>
-        <p>${mensaje}</p>
-
-        <div class="disclosure-section" style="margin-top: 1.5rem; border: 1px solid #dadce0; border-radius: 8px;">
-          
-          <button class="disclosure-header expanded"
-            onclick="if(this.nextElementSibling){this.classList.toggle('expanded'); this.nextElementSibling.classList.toggle('expanded');}"
-            style="padding: 16px; background: #f8f9fa; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border: none; width: 100%; font-size: 14px; font-weight: 500; color: #202124;">
-            <span>ℹ️ Acerca del anunciante</span>
-            <span style="transition: transform 0.3s; display: inline-block;">▼</span>
-          </button>
-          
-          <div class="disclosure-content expanded" style="max-height: 1000px; overflow: hidden; background: white;">
-            <div style="padding: 16px; border-top: 1px solid #dadce0;">
-
-              <div style="display: grid; gap: 12px;">
-
-
-                <div
-                  style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
-                  <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Nombre del negocio</span>
-                  <span style="color: #202124; font-size: 13px;" id="modal-nombre">None</span>
-                </div>
-
-                <div
-                  style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
-                  <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Teléfono</span>
-                  <span style="color: #202124; font-size: 13px;" id="modal-telefono">None</span>
-                </div>
-
-                <div style="display: flex; justify-content: space-between; padding: 8px 0;">
-                  <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Sección</span>
-                  
-                  <span style="color: #202124; font-size: 13px; text-transform: capitalize;" id="modal-ubicacion">
-                  tucumán
-                  </span>
-              
-                  </div>
-
-                <div style="display: flex; justify-content: space-between; padding: 8px 0;">
-                  <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Pagado por</span>
-                  <span style="color: #202124; font-size: 13px; text-transform: capitalize;" id="modal-pagado">None</span>
-                </div>
-
-                <div style="display: flex; justify-content: space-between; padding: 8px 0;">
-                  <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Anunciando desde</span>
-                  <span style="color: #202124; font-size: 13px;" id="modal-pagado">None</span>
-                </div>
-
-              </div>
-
-            </div>
-          </div>
-        </div>        
-
-        <div style="margin-top: 1.5rem;">
-      `;
-
-      if (url) {
-        html += `<button class="button" onclick="window.open('${url}', '_blank'); cerrarModal();">✅ Continuar</button>`;
-      }
-      
-      html += `
-          <button class="button button-danger" onclick="cerrarModal();">❌ Cancelar</button>
-        </div>
-
-                <div style="display: flex; justify-content: space-between; padding: 8px 0;">
-          <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Fecha y hora</span>
-          <span style="color: #202124; font-size: 13px;" id="modal-pagado">
-            <p id="reloj"></p>
-          </span>
-        </div>
-
-        <a onclick="copiarDatosProveedor()" href="#" style="font-size: 1rem; float: inline-start;">📋 Copiar al portapapeles esta información</a><br>
-        <a onclick="descargarModalImagen()" href="#" style="font-size: 1rem; float: inline-start;">⬇️ Descargar imagen de esta información</a><br>
-        <a href="#" style="font-size:1rem; color:#d93025; float: inline-start;">⚠️ Reportar problema con este anunciante</a>
-        <div class="modal-legal">
-          Al contactar, confirmas que aceptas 
-          <a href="terminos-y-condiciones.html">Términos y Condiciones</a>.
-        </div>
-      `;
-
-      abrirModal(html);
-    }
-  
-
   
   function mostrarModalAdvertenciaformulario(mensaje, url = null) {
     let html = `
@@ -2087,7 +1969,7 @@
     `;
     
     html += `
-        <button class="button button-danger" onclick="cerrarModal();">❌ Cancelar</button>
+        <button class="button button-danger" data-cierre="cancelar" onclick="cerrarModal();">❌ Cancelar</button>
       </div>
       <div class="modal-legal">
         Al enviar el formulario, confirmas que has leído y aceptas 
@@ -2095,7 +1977,7 @@
       </div>
     `;
 
-    abrirModal(html);
+    abrirModal(html, "aviso");
   }
 
   
@@ -2112,14 +1994,14 @@
 
       <p>O probá con una distancia máxima más alta.</p>
       
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar</button>
 
       <div class="modal-legal">
         Al usar el buscador, confirmas que aceptas 
         <a href="terminos-y-condiciones.html">Términos y Condiciones</a>.
       </div>
     `;
-    abrirModal(html);
+    abrirModal(html, "sin_resultados");
   }
 
   
@@ -2148,14 +2030,14 @@
 
     html += `
       </ul>
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar</button>
       <div class="modal-legal">
         Al contactar a un proveedor, confirmas que aceptas 
         <a href="terminos-y-condiciones.html">Términos y Condiciones</a>.
       </div>
     `;
 
-    abrirModal(html);
+    abrirModal(html, "resultados");
   }
 
   
@@ -2163,9 +2045,9 @@
     const html = `
       <h1 id="modal-title">📍 Error en la Búsqueda</h1>
       <p><strong>${mensaje}</strong></p>
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar e Intentar de Nuevo</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar e Intentar de Nuevo</button>
     `;
-    abrirModal(html);
+    abrirModal(html, "error");
   }
 
   
@@ -2241,7 +2123,7 @@
           <p>Buscando proveedores cercanos...</p>
         </div>
         <div id="progress-bar"></div>
-      `);
+      `, "cargando");
 
       const posicion = await obtenerUbicacionConFallback();
       const userLat = posicion.coords.latitude;
@@ -2320,103 +2202,27 @@
       <input type="number" id="umbral-km" value="${ultimoUmbralKm}" step="1" min="0" style="width: 100%; text-align: center;">
       <p>Si hay proveedores aparecerán del más cercano al más lejano.</p>
       <button onclick="buscarPorUbicacion();" class="button button1">🔍 Buscar proveedor de servicios</button>
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar</button>
      
 
 <select id="localidades" onchange="window.location.href=this.value;" class="button button2" style="width:80%;background-color: var(--fondo);color: white;">
 <option value="">Seleccione una opción</option>
 
 
-<option value="tucuman/barrio-san-jorge.html" style="color: darkred;">
-    ✘ | barrio san jorge
-</option>
-
-<option value="tucuman/el-chanar.html" style="color: darkred;">
-    ✘ | el chañar
-</option>
-
-<option value="tucuman/el-naranjo.html" style="color: darkred;">
-    ✘ | el naranjo
-</option>
-
-<option value="tucuman/garmendia.html" style="color: darkred;">
-    ✘ | garmendia
-</option>
-
-<option value="tucuman/la-ramada.html" style="color: darkred;">
-    ✘ | la ramada
-</option>
-
-<option value="tucuman/macomitas.html" style="color: darkred;">
-    ✘ | macomitas
-</option>
-
-<option value="tucuman/piedrabuena.html" style="color: darkred;">
-    ✘ | piedrabuena
-</option>
-
 <option value="tucuman/7-de-abril.html" style="color: darkred;">
     ✘ | 7 de abril
 </option>
 
-<option value="tucuman/villa-benjamin-araoz.html" style="color: darkred;">
-    ✘ | villa benjamín aráoz
+<option value="tucuman/acheral.html" style="color: darkred;">
+    ✘ | acheral
 </option>
 
-<option value="tucuman/villa-burruyacu.html" style="color: darkred;">
-    ✘ | villa burruyacú
-</option>
-
-<option value="tucuman/villa-padre-monti.html" style="color: darkred;">
-    ✘ | villa padre monti
+<option value="tucuman/aguilares.html" style="color: darkred;">
+    ✘ | aguilares
 </option>
 
 <option value="tucuman/alderetes.html" style="color: darkred;">
     ✘ | alderetes
-</option>
-
-<option value="tucuman/banda-del-rio-sali.html" style="color: darkred;">
-    ✘ | banda del río salí
-</option>
-
-<option value="tucuman/colombres.html" style="color: darkred;">
-    ✘ | colombres
-</option>
-
-<option value="tucuman/colonia-mayo-barrio-la-milagrosa.html" style="color: darkred;">
-    ✘ | colonia mayo - barrio la milagrosa
-</option>
-
-<option value="tucuman/delfin-gallo.html" style="color: darkred;">
-    ✘ | delfín gallo
-</option>
-
-<option value="tucuman/el-bracho.html" style="color: darkred;">
-    ✘ | el bracho
-</option>
-
-<option value="tucuman/la-florida.html" style="color: darkred;">
-    ✘ | la florida
-</option>
-
-<option value="tucuman/las-cejas.html" style="color: darkred;">
-    ✘ | las cejas
-</option>
-
-<option value="tucuman/los-ralos.html" style="color: darkred;">
-    ✘ | los ralos
-</option>
-
-<option value="tucuman/pacara.html" style="color: darkred;">
-    ✘ | pacará
-</option>
-
-<option value="tucuman/ranchillos.html" style="color: darkred;">
-    ✘ | ranchillos
-</option>
-
-<option value="tucuman/san-andres.html" style="color: darkred;">
-    ✘ | san andrés
 </option>
 
 <option value="tucuman/alpachiri.html" style="color: darkred;">
@@ -2427,232 +2233,24 @@
     ✘ | alto verde
 </option>
 
+<option value="tucuman/amaicha-del-valle.html" style="color: darkred;">
+    ✘ | amaicha del valle
+</option>
+
 <option value="tucuman/arcadia.html" style="color: darkred;">
     ✘ | arcadia
-</option>
-
-<option value="tucuman/barrio-san-roque.html" style="color: darkred;">
-    ✘ | barrio san roque
-</option>
-
-<option value="tucuman/concepcion.html" style="color: darkred;">
-    ✘ | concepción
-</option>
-
-<option value="tucuman/iltico.html" style="color: darkred;">
-    ✘ | iltico
-</option>
-
-<option value="tucuman/la-trinidad.html" style="color: darkred;">
-    ✘ | la trinidad
-</option>
-
-<option value="tucuman/medina.html" style="color: darkred;">
-    ✘ | medina
-</option>
-
-<option value="tucuman/barrio-casa-rosada.html" style="color: darkred;">
-    ✘ | barrio casa rosada
-</option>
-
-<option value="tucuman/campo-de-herrera.html" style="color: darkred;">
-    ✘ | campo de herrera
-</option>
-
-<option value="tucuman/famailla.html" style="color: darkred;">
-    ✘ | famaillá
-</option>
-
-<option value="tucuman/ingenio-fronterita.html" style="color: darkred;">
-    ✘ | ingenio fronterita
-</option>
-
-<option value="tucuman/graneros.html" style="color: darkred;">
-    ✘ | graneros
-</option>
-
-<option value="tucuman/lamadrid.html" style="color: darkred;">
-    ✘ | lamadrid
-</option>
-
-<option value="tucuman/taco-ralo.html" style="color: darkred;">
-    ✘ | taco ralo
-</option>
-
-<option value="tucuman/juan-bautista-alberdi.html" style="color: darkred;">
-    ✘ | juan bautista alberdi
-</option>
-
-<option value="tucuman/villa-belgrano.html" style="color: darkred;">
-    ✘ | villa belgrano
-</option>
-
-<option value="tucuman/la-cocha.html" style="color: darkred;">
-    ✘ | la cocha
-</option>
-
-<option value="tucuman/san-jose-de-la-cocha.html" style="color: darkred;">
-    ✘ | san josé de la cocha
-</option>
-
-<option value="tucuman/bella-vista.html" style="color: darkred;">
-    ✘ | bella vista
-</option>
-
-<option value="tucuman/estacion-araoz.html" style="color: darkred;">
-    ✘ | estación aráoz
-</option>
-
-<option value="tucuman/los-puestos.html" style="color: darkred;">
-    ✘ | los puestos
-</option>
-
-<option value="tucuman/manuel-garcia-fernandez.html" style="color: darkred;">
-    ✘ | manuel garcía fernández
-</option>
-
-<option value="tucuman/pala-pala.html" style="color: darkred;">
-    ✘ | pala pala
-</option>
-
-<option value="tucuman/rio-colorado.html" style="color: darkred;">
-    ✘ | río colorado
-</option>
-
-<option value="tucuman/santa-rosa-de-leales.html" style="color: darkred;">
-    ✘ | santa rosa de leales
-</option>
-
-<option value="tucuman/villa-fiad-ingenio-leales.html" style="color: darkred;">
-    ✘ | villa fiad - ingenio leales
-</option>
-
-<option value="tucuman/villa-de-leales.html" style="color: darkred;">
-    ✘ | villa de leales
-</option>
-
-<option value="tucuman/barrio-san-felipe.html" style="color: darkred;">
-    ✘ | barrio san felipe
-</option>
-
-<option value="tucuman/el-manantial.html" style="color: darkred;">
-    ✘ | el manantial
-</option>
-
-<option value="tucuman/ingenio-san-pablo.html" style="color: darkred;">
-    ✘ | ingenio san pablo
-</option>
-
-<option value="tucuman/la-reduccion.html" style="color: darkred;">
-    ✘ | la reducción
-</option>
-
-<option value="tucuman/lules.html" style="color: darkred;">
-    ✘ | lules
-</option>
-
-<option value="tucuman/acheral.html" style="color: darkred;">
-    ✘ | acheral
-</option>
-
-<option value="tucuman/capitan-caceres.html" style="color: darkred;">
-    ✘ | capitán cáceres
-</option>
-
-<option value="tucuman/monteros.html" style="color: darkred;">
-    ✘ | monteros
-</option>
-
-<option value="tucuman/pueblo-independencia.html" style="color: darkred;">
-    ✘ | pueblo independencia
-</option>
-
-<option value="tucuman/rio-seco.html" style="color: darkred;">
-    ✘ | río seco
-</option>
-
-<option value="tucuman/santa-lucia.html" style="color: darkred;">
-    ✘ | santa lucía
-</option>
-
-<option value="tucuman/sargento-moya.html" style="color: darkred;">
-    ✘ | sargento moya
-</option>
-
-<option value="tucuman/soldado-maldonado.html" style="color: darkred;">
-    ✘ | soldado maldonado
-</option>
-
-<option value="tucuman/teniente-berdina.html" style="color: darkred;">
-    ✘ | teniente berdina
-</option>
-
-<option value="tucuman/villa-quinteros.html" style="color: darkred;">
-    ✘ | villa quinteros
-</option>
-
-<option value="tucuman/aguilares.html" style="color: darkred;">
-    ✘ | aguilares
-</option>
-
-<option value="tucuman/los-sarmientos.html" style="color: darkred;">
-    ✘ | los sarmientos
-</option>
-
-<option value="tucuman/rio-chico.html" style="color: darkred;">
-    ✘ | río chico
-</option>
-
-<option value="tucuman/santa-ana.html" style="color: darkred;">
-    ✘ | santa ana
-</option>
-
-<option value="tucuman/villa-clodomiro-hileret.html" style="color: darkred;">
-    ✘ | villa clodomiro hileret
-</option>
-
-<option value="tucuman/san-miguel-de-tucuman.html" style="color: darkred;">
-    ✘ | san miguel de tucumán
 </option>
 
 <option value="tucuman/atahona.html" style="color: darkred;">
     ✘ | atahona
 </option>
 
-<option value="tucuman/monteagudo.html" style="color: darkred;">
-    ✘ | monteagudo
+<option value="tucuman/banda-del-rio-sali.html" style="color: darkred;">
+    ✘ | banda del río salí
 </option>
 
-<option value="tucuman/nueva-trinidad.html" style="color: darkred;">
-    ✘ | nueva trinidad
-</option>
-
-<option value="tucuman/santa-cruz.html" style="color: darkred;">
-    ✘ | santa cruz
-</option>
-
-<option value="tucuman/simoca.html" style="color: darkred;">
-    ✘ | simoca
-</option>
-
-<option value="tucuman/villa-chicligasta.html" style="color: darkred;">
-    ✘ | villa chicligasta
-</option>
-
-<option value="tucuman/amaicha-del-valle.html" style="color: darkred;">
-    ✘ | amaicha del valle
-</option>
-
-<option value="tucuman/colalao-del-valle.html" style="color: darkred;">
-    ✘ | colalao del valle
-</option>
-
-<option value="tucuman/el-mollar.html" style="color: darkred;">
-    ✘ | el mollar
-</option>
-
-<option value="tucuman/tafi-del-valle.html" style="color: darkred;">
-    ✘ | tafí del valle
+<option value="tucuman/barrio-casa-rosada.html" style="color: darkred;">
+    ✘ | barrio casa rosada
 </option>
 
 <option value="tucuman/barrio-el-cruce.html" style="color: darkred;">
@@ -2671,20 +2269,316 @@
     ✘ | barrio parada 14
 </option>
 
+<option value="tucuman/barrio-san-felipe.html" style="color: darkred;">
+    ✘ | barrio san felipe
+</option>
+
+<option value="tucuman/barrio-san-jorge.html" style="color: darkred;">
+    ✘ | barrio san jorge
+</option>
+
+<option value="tucuman/barrio-san-jose-iii.html" style="color: darkred;">
+    ✘ | barrio san josé iii
+</option>
+
+<option value="tucuman/barrio-san-roque.html" style="color: darkred;">
+    ✘ | barrio san roque
+</option>
+
 <option value="tucuman/barrio-u-t-a-ii.html" style="color: darkred;">
     ✘ | barrio u.t.a. ii
+</option>
+
+<option value="tucuman/bella-vista.html" style="color: darkred;">
+    ✘ | bella vista
+</option>
+
+<option value="tucuman/campo-de-herrera.html" style="color: darkred;">
+    ✘ | campo de herrera
+</option>
+
+<option value="tucuman/capitan-caceres.html" style="color: darkred;">
+    ✘ | capitán cáceres
+</option>
+
+<option value="tucuman/choromoro.html" style="color: darkred;">
+    ✘ | choromoro
+</option>
+
+<option value="tucuman/colalao-del-valle.html" style="color: darkred;">
+    ✘ | colalao del valle
+</option>
+
+<option value="tucuman/colombres.html" style="color: darkred;">
+    ✘ | colombres
+</option>
+
+<option value="tucuman/colonia-mayo-barrio-la-milagrosa.html" style="color: darkred;">
+    ✘ | colonia mayo - barrio la milagrosa
+</option>
+
+<option value="tucuman/concepcion.html" style="color: darkred;">
+    ✘ | concepción
+</option>
+
+<option value="tucuman/delfin-gallo.html" style="color: darkred;">
+    ✘ | delfín gallo
 </option>
 
 <option value="tucuman/diagonal-norte-luz-y-fuerza-los-pocitos-villa-nueva-italia.html" style="color: darkred;">
     ✘ | diagonal norte - luz y fuerza - los pocitos - villa nueva italia
 </option>
 
+<option value="tucuman/el-bracho.html" style="color: darkred;">
+    ✘ | el bracho
+</option>
+
 <option value="tucuman/el-cadillal.html" style="color: darkred;">
     ✘ | el cadillal
 </option>
 
+<option value="tucuman/el-chanar.html" style="color: darkred;">
+    ✘ | el chañar
+</option>
+
+<option value="tucuman/el-manantial.html" style="color: darkred;">
+    ✘ | el manantial
+</option>
+
+<option value="tucuman/el-mollar.html" style="color: darkred;">
+    ✘ | el mollar
+</option>
+
+<option value="tucuman/el-naranjo.html" style="color: darkred;">
+    ✘ | el naranjo
+</option>
+
+<option value="tucuman/estacion-araoz.html" style="color: darkred;">
+    ✘ | estación aráoz
+</option>
+
+<option value="tucuman/famailla.html" style="color: darkred;">
+    ✘ | famaillá
+</option>
+
+<option value="tucuman/garmendia.html" style="color: darkred;">
+    ✘ | garmendia
+</option>
+
+<option value="tucuman/graneros.html" style="color: darkred;">
+    ✘ | graneros
+</option>
+
+<option value="tucuman/iltico.html" style="color: darkred;">
+    ✘ | iltico
+</option>
+
+<option value="tucuman/ingenio-fronterita.html" style="color: darkred;">
+    ✘ | ingenio fronterita
+</option>
+
+<option value="tucuman/ingenio-san-pablo.html" style="color: darkred;">
+    ✘ | ingenio san pablo
+</option>
+
+<option value="tucuman/juan-bautista-alberdi.html" style="color: darkred;">
+    ✘ | juan bautista alberdi
+</option>
+
+<option value="tucuman/la-cocha.html" style="color: darkred;">
+    ✘ | la cocha
+</option>
+
+<option value="tucuman/la-florida.html" style="color: darkred;">
+    ✘ | la florida
+</option>
+
+<option value="tucuman/la-ramada.html" style="color: darkred;">
+    ✘ | la ramada
+</option>
+
+<option value="tucuman/la-reduccion.html" style="color: darkred;">
+    ✘ | la reducción
+</option>
+
+<option value="tucuman/la-trinidad.html" style="color: darkred;">
+    ✘ | la trinidad
+</option>
+
+<option value="tucuman/lamadrid.html" style="color: darkred;">
+    ✘ | lamadrid
+</option>
+
+<option value="tucuman/las-cejas.html" style="color: darkred;">
+    ✘ | las cejas
+</option>
+
+<option value="tucuman/los-puestos.html" style="color: darkred;">
+    ✘ | los puestos
+</option>
+
+<option value="tucuman/los-ralos.html" style="color: darkred;">
+    ✘ | los ralos
+</option>
+
+<option value="tucuman/los-sarmientos.html" style="color: darkred;">
+    ✘ | los sarmientos
+</option>
+
+<option value="tucuman/lules.html" style="color: darkred;">
+    ✘ | lules
+</option>
+
+<option value="tucuman/macomitas.html" style="color: darkred;">
+    ✘ | macomitas
+</option>
+
+<option value="tucuman/manuel-garcia-fernandez.html" style="color: darkred;">
+    ✘ | manuel garcía fernández
+</option>
+
+<option value="tucuman/medina.html" style="color: darkred;">
+    ✘ | medina
+</option>
+
+<option value="tucuman/monteagudo.html" style="color: darkred;">
+    ✘ | monteagudo
+</option>
+
+<option value="tucuman/monteros.html" style="color: darkred;">
+    ✘ | monteros
+</option>
+
+<option value="tucuman/nueva-trinidad.html" style="color: darkred;">
+    ✘ | nueva trinidad
+</option>
+
+<option value="tucuman/pacara.html" style="color: darkred;">
+    ✘ | pacará
+</option>
+
+<option value="tucuman/pala-pala.html" style="color: darkred;">
+    ✘ | pala pala
+</option>
+
+<option value="tucuman/piedrabuena.html" style="color: darkred;">
+    ✘ | piedrabuena
+</option>
+
+<option value="tucuman/pueblo-independencia.html" style="color: darkred;">
+    ✘ | pueblo independencia
+</option>
+
+<option value="tucuman/ranchillos.html" style="color: darkred;">
+    ✘ | ranchillos
+</option>
+
+<option value="tucuman/rio-chico.html" style="color: darkred;">
+    ✘ | río chico
+</option>
+
+<option value="tucuman/rio-colorado.html" style="color: darkred;">
+    ✘ | río colorado
+</option>
+
+<option value="tucuman/rio-seco.html" style="color: darkred;">
+    ✘ | río seco
+</option>
+
+<option value="tucuman/san-andres.html" style="color: darkred;">
+    ✘ | san andrés
+</option>
+
+<option value="tucuman/san-jose-de-la-cocha.html" style="color: darkred;">
+    ✘ | san josé de la cocha
+</option>
+
+<option value="tucuman/san-miguel-de-tucuman.html" style="color: darkred;">
+    ✘ | san miguel de tucumán
+</option>
+
+<option value="tucuman/san-pedro-de-colalao.html" style="color: darkred;">
+    ✘ | san pedro de colalao
+</option>
+
+<option value="tucuman/santa-ana.html" style="color: darkred;">
+    ✘ | santa ana
+</option>
+
+<option value="tucuman/santa-cruz.html" style="color: darkred;">
+    ✘ | santa cruz
+</option>
+
+<option value="tucuman/santa-lucia.html" style="color: darkred;">
+    ✘ | santa lucía
+</option>
+
+<option value="tucuman/santa-rosa-de-leales.html" style="color: darkred;">
+    ✘ | santa rosa de leales
+</option>
+
+<option value="tucuman/sargento-moya.html" style="color: darkred;">
+    ✘ | sargento moya
+</option>
+
+<option value="tucuman/simoca.html" style="color: darkred;">
+    ✘ | simoca
+</option>
+
+<option value="tucuman/soldado-maldonado.html" style="color: darkred;">
+    ✘ | soldado maldonado
+</option>
+
+<option value="tucuman/taco-ralo.html" style="color: darkred;">
+    ✘ | taco ralo
+</option>
+
+<option value="tucuman/tafi-del-valle.html" style="color: darkred;">
+    ✘ | tafí del valle
+</option>
+
 <option value="tucuman/tafi-viejo.html" style="color: darkred;">
     ✘ | tafí viejo
+</option>
+
+<option value="tucuman/teniente-berdina.html" style="color: darkred;">
+    ✘ | teniente berdina
+</option>
+
+<option value="tucuman/villa-belgrano.html" style="color: darkred;">
+    ✘ | villa belgrano
+</option>
+
+<option value="tucuman/villa-benjamin-araoz.html" style="color: darkred;">
+    ✘ | villa benjamín aráoz
+</option>
+
+<option value="tucuman/villa-burruyacu.html" style="color: darkred;">
+    ✘ | villa burruyacú
+</option>
+
+<option value="tucuman/villa-carmela.html" style="color: darkred;">
+    ✘ | villa carmela
+</option>
+
+<option value="tucuman/villa-chicligasta.html" style="color: darkred;">
+    ✘ | villa chicligasta
+</option>
+
+<option value="tucuman/villa-clodomiro-hileret.html" style="color: darkred;">
+    ✘ | villa clodomiro hileret
+</option>
+
+<option value="tucuman/villa-de-leales.html" style="color: darkred;">
+    ✘ | villa de leales
+</option>
+
+<option value="tucuman/villa-de-trancas.html" style="color: darkred;">
+    ✘ | villa de trancas
+</option>
+
+<option value="tucuman/villa-fiad-ingenio-leales.html" style="color: darkred;">
+    ✘ | villa fiad - ingenio leales
 </option>
 
 <option value="tucuman/villa-las-flores.html" style="color: darkred;">
@@ -2695,24 +2589,12 @@
     ✘ | villa mariano moreno - el colmenar
 </option>
 
-<option value="tucuman/choromoro.html" style="color: darkred;">
-    ✘ | choromoro
+<option value="tucuman/villa-padre-monti.html" style="color: darkred;">
+    ✘ | villa padre monti
 </option>
 
-<option value="tucuman/san-pedro-de-colalao.html" style="color: darkred;">
-    ✘ | san pedro de colalao
-</option>
-
-<option value="tucuman/villa-de-trancas.html" style="color: darkred;">
-    ✘ | villa de trancas
-</option>
-
-<option value="tucuman/barrio-san-jose-iii.html" style="color: darkred;">
-    ✘ | barrio san josé iii
-</option>
-
-<option value="tucuman/villa-carmela.html" style="color: darkred;">
-    ✘ | villa carmela
+<option value="tucuman/villa-quinteros.html" style="color: darkred;">
+    ✘ | villa quinteros
 </option>
 
 <option value="tucuman/yerba-buena-marcos-paz.html" style="color: darkred;">
@@ -2728,7 +2610,7 @@
         <a href="terminos-y-condiciones.html">Términos y Condiciones</a>.
       </div>
       `;
-    abrirModal(html);
+    abrirModal(html, "buscar");
 
       inicializarSelect2("#localidades", "Buscar localidad");
   }

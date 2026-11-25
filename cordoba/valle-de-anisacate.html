@@ -84,12 +84,77 @@
     "telephone": "+5493547447453",
     "contactType": "customer service"
   },
-  "openingHoursSpecification": [ {
-    "@type": "OpeningHoursSpecification",
-    "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-    "opens": "00:00",
-    "closes": "23:59"
-  } ],
+  "openingHoursSpecification": [
+    {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+      "opens": "08:00",
+      "closes": "19:00"
+    },    {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": ["Saturday"],
+      "opens": "08:00",
+      "closes": "13:00"
+    }  ],
+  "specialOpeningHoursSpecification": [
+    {
+      "@type": "OpeningHoursSpecification",
+      "name": "Feriado con fines turísticos",
+      "validFrom": "2026-12-07",
+      "validThrough": "2026-12-07",
+      "opens": "00:00",
+      "closes": "00:00"
+    },    {
+      "@type": "OpeningHoursSpecification",
+      "name": "Inmaculada Concepción de María",
+      "validFrom": "2026-12-08",
+      "validThrough": "2026-12-08",
+      "opens": "00:00",
+      "closes": "00:00"
+    },    {
+      "@type": "OpeningHoursSpecification",
+      "name": "Navidad",
+      "validFrom": "2026-12-25",
+      "validThrough": "2026-12-25",
+      "opens": "00:00",
+      "closes": "00:00"
+    },    {
+      "@type": "OpeningHoursSpecification",
+      "name": "Año Nuevo",
+      "validFrom": "2027-01-01",
+      "validThrough": "2027-01-01",
+      "opens": "00:00",
+      "closes": "00:00"
+    },    {
+      "@type": "OpeningHoursSpecification",
+      "name": "Lunes de Carnaval",
+      "validFrom": "2027-02-08",
+      "validThrough": "2027-02-08",
+      "opens": "00:00",
+      "closes": "00:00"
+    },    {
+      "@type": "OpeningHoursSpecification",
+      "name": "Martes de Carnaval",
+      "validFrom": "2027-02-09",
+      "validThrough": "2027-02-09",
+      "opens": "00:00",
+      "closes": "00:00"
+    },    {
+      "@type": "OpeningHoursSpecification",
+      "name": "Día Nacional de la Memoria por la Verdad y la Justicia",
+      "validFrom": "2027-03-24",
+      "validThrough": "2027-03-24",
+      "opens": "00:00",
+      "closes": "00:00"
+    },    {
+      "@type": "OpeningHoursSpecification",
+      "name": "Jueves Santo",
+      "validFrom": "2027-03-25",
+      "validThrough": "2027-03-25",
+      "opens": "00:00",
+      "closes": "00:00"
+    }  ],
+  "paymentAccepted": "Efectivo, Transferencia, MercadoPago",
   "hasOfferCatalog": {
     "@type": "OfferCatalog",
     "name": "Servicios de Plomeros",
@@ -211,17 +276,30 @@
 }
 </script>
 
-<script>(function (w, d, s, l, i) {
-        w[l] = w[l] || []; w[l].push({
-            'gtm.start':
-                new Date().getTime(), event: 'gtm.js'
-        }); var f = d.getElementsByTagName(s)[0],
-            j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
-                'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
-    })(window, document, 'script', 'dataLayer', 'GTM-W4NSZ7JP');</script>
+<script>
+    (function (w, d) {
+        var propio = 'plomero.net.ar', clave = 'analitica', eleccion = null;
+        try {
+            var pedido = new URLSearchParams(location.search).get(clave);
+            if (pedido === 'si' || pedido === 'no') localStorage.setItem(clave, pedido);
+            else if (pedido === 'auto') localStorage.removeItem(clave);
+            eleccion = localStorage.getItem(clave);
+        } catch (e) { /* sin localStorage: se decide solo por el dominio */ }
 
-    <link rel="stylesheet" href="../votacion.css">
-    <script defer src="../votacion.js"></script>
+        var enDominio = location.hostname.replace(/^www\./, '') === propio;
+        var medir = eleccion ? eleccion === 'si' : enDominio;
+        w.__analitica = { medir: medir, por: eleccion ? 'eleccion_' + eleccion : (enDominio ? 'dominio' : 'otro_dominio') };
+        if (!medir) return;
+
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+        var s = d.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtm.js?id=GTM-W4NSZ7JP';
+        d.head.appendChild(s);
+    })(window, document);
+</script>
+
 </head>
 
 <body>
@@ -260,7 +338,7 @@
             <a href="./../cordoba.html">🗺️ Plomeros en córdoba</a>
         </li>
         <li>
-            <a onclick="mostrarModalBuscarProveedor();">🔍 Encontrar Plomeros</a>
+            <a data-medir="click_nav_buscar" onclick="mostrarModalBuscarProveedor();">🔍 Encontrar Plomeros</a>
         </li>
         <li>
             <a href="../terminos-y-condiciones.html">📋 Términos y Condiciones</a>
@@ -487,6 +565,7 @@
 
 
 
+
         <p style="margin-bottom: 1em;">
     Al llamar o mandar un mensaje, confirmas que has leído y aceptas los 
     <a href="                ../terminos-y-condiciones.html
@@ -514,6 +593,135 @@
 
 
 </div>
+
+<div class="horarios-anunciante" id="horarios"
+     style="width: 100%; margin: 2rem auto; padding: 1rem 1.25rem; background: #fff; color: #202124;
+            border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.2); text-align: left;">
+
+    <p id="estado-horario" style="font-size: 1.15rem; font-weight: bold; margin: 0 0 .25rem;" aria-live="polite">
+🕒 Horarios de atención    </p>
+    <p id="estado-horario-detalle" style="margin: 0 0 .75rem; color: #5f6368;"></p>
+
+    <h4 style="margin: .5rem 0;">Horarios de atención</h4>
+    <table style="width: 100%; border-collapse: collapse; font-size: .95rem;">
+        <tr data-dia="0" style="border-bottom: 1px solid #f0f0f0;">
+            <td style="padding: 4px 0; font-weight: 500;">Lunes</td>
+            <td style="padding: 4px 0; text-align: right;">08:00 a 19:00</td>
+        </tr>
+        <tr data-dia="1" style="border-bottom: 1px solid #f0f0f0;">
+            <td style="padding: 4px 0; font-weight: 500;">Martes</td>
+            <td style="padding: 4px 0; text-align: right;">08:00 a 19:00</td>
+        </tr>
+        <tr data-dia="2" style="border-bottom: 1px solid #f0f0f0;">
+            <td style="padding: 4px 0; font-weight: 500;">Miércoles</td>
+            <td style="padding: 4px 0; text-align: right;">08:00 a 19:00</td>
+        </tr>
+        <tr data-dia="3" style="border-bottom: 1px solid #f0f0f0;">
+            <td style="padding: 4px 0; font-weight: 500;">Jueves</td>
+            <td style="padding: 4px 0; text-align: right;">08:00 a 19:00</td>
+        </tr>
+        <tr data-dia="4" style="border-bottom: 1px solid #f0f0f0;">
+            <td style="padding: 4px 0; font-weight: 500;">Viernes</td>
+            <td style="padding: 4px 0; text-align: right;">08:00 a 19:00</td>
+        </tr>
+        <tr data-dia="5" style="border-bottom: 1px solid #f0f0f0;">
+            <td style="padding: 4px 0; font-weight: 500;">Sábado</td>
+            <td style="padding: 4px 0; text-align: right;">08:00 a 13:00</td>
+        </tr>
+        <tr data-dia="6" style="border-bottom: 1px solid #f0f0f0;">
+            <td style="padding: 4px 0; font-weight: 500;">Domingo</td>
+            <td style="padding: 4px 0; text-align: right;">Cerrado</td>
+        </tr>
+    </table>
+
+    <ul style="margin: .75rem 0 0; padding-left: 1.2rem; color: #3c4043;">
+<li>No atiende feriados.</li>    </ul>
+</div>
+
+<script>
+(function () {
+    var FRANJAS = [[0, "08:00", "19:00"], [1, "08:00", "19:00"], [2, "08:00", "19:00"], [3, "08:00", "19:00"], [4, "08:00", "19:00"], [5, "08:00", "13:00"]];          /* [dia 0=lunes, 'HH:MM', 'HH:MM'] */
+    var FERIADOS = ["2026-12-07", "2026-12-08", "2026-12-25", "2027-01-01", "2027-02-08", "2027-02-09", "2027-03-24", "2027-03-25", "2027-03-26", "2027-04-02", "2027-05-01", "2027-05-25", "2027-06-20", "2027-06-21", "2027-07-09", "2027-08-16", "2027-10-11", "2027-11-20", "2027-12-08", "2027-12-25"];
+    var ATIENDE_FERIADOS = false;
+    var URGENCIAS = false;
+    var SIEMPRE = false;
+    var DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];
+
+    /* Fecha, día (0=lunes) y hora actuales en Argentina, sin importar la zona del visitante */
+    function ahoraArgentina() {
+        var partes = {};
+        new Intl.DateTimeFormat("en-CA", {
+            timeZone: "America/Argentina/Buenos_Aires", year: "numeric", month: "2-digit", day: "2-digit",
+            hour: "2-digit", minute: "2-digit", hourCycle: "h23", weekday: "short"
+        }).formatToParts(new Date()).forEach(function (p) { partes[p.type] = p.value; });
+        var semana = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+        return { fecha: partes.year + "-" + partes.month + "-" + partes.day,
+                 dia: semana[partes.weekday], hora: partes.hour + ":" + partes.minute };
+    }
+
+    function sumarDias(fecha, n) {
+        var d = new Date(fecha + "T12:00:00Z");
+        d.setUTCDate(d.getUTCDate() + n);
+        return d.toISOString().slice(0, 10);
+    }
+
+    function cerradoPorFeriado(fecha) {
+        return !ATIENDE_FERIADOS && FERIADOS.indexOf(fecha) !== -1;
+    }
+
+    function franjasDe(dia, fecha) {
+        if (cerradoPorFeriado(fecha)) return [];
+        return FRANJAS.filter(function (f) { return f[0] === dia; });
+    }
+
+    /* Hora de cierre real, siguiendo las franjas que continúan pasada la medianoche */
+    function horaDeCierre(dia, fecha, cierra) {
+        for (var i = 0; i < 7 && cierra === "24:00"; i++) {
+            dia = (dia + 1) % 7; fecha = sumarDias(fecha, 1);
+            var sigue = franjasDe(dia, fecha).filter(function (f) { return f[1] === "00:00"; });
+            if (!sigue.length) return "a las 00:00";
+            cierra = sigue[0][2];
+            if (cierra !== "24:00") return (i === 0 ? "mañana a las " : "el " + DIAS[dia] + " a las ") + cierra;
+        }
+        return "a las " + cierra;
+    }
+
+    function proximaApertura(a) {
+        for (var k = 0; k < 8; k++) {
+            var dia = (a.dia + k) % 7, fecha = sumarDias(a.fecha, k);
+            var franjas = franjasDe(dia, fecha).filter(function (f) { return k > 0 || f[1] > a.hora; });
+            if (franjas.length) {
+                var cuando = k === 0 ? "hoy" : k === 1 ? "mañana" : "el " + DIAS[dia];
+                return "Abre " + cuando + " a las " + franjas[0][1];
+            }
+        }
+        return "";
+    }
+
+    function actualizar() {
+        var a = ahoraArgentina();
+        var estado = document.getElementById("estado-horario");
+        var detalle = document.getElementById("estado-horario-detalle");
+        var fila = document.querySelector('#horarios tr[data-dia="' + a.dia + '"]');
+        if (fila) fila.querySelectorAll("td").forEach(function (td) { td.style.fontWeight = "bold"; });
+
+        var abierta = franjasDe(a.dia, a.fecha).filter(function (f) { return f[1] <= a.hora && a.hora < f[2]; })[0];
+        if (abierta) {
+            estado.textContent = SIEMPRE ? "🟢 Abierto las 24 horas" : "🟢 Abierto ahora";
+            detalle.textContent = SIEMPRE ? "" : "Cierra " + horaDeCierre(a.dia, a.fecha, abierta[2]) + ".";
+        } else {
+            estado.textContent = URGENCIAS ? "🟠 Cerrado · atiende urgencias" : "🔴 Cerrado ahora";
+            var motivo = cerradoPorFeriado(a.fecha) ? "Hoy es feriado. " : "";
+            var proxima = proximaApertura(a);
+            detalle.textContent = motivo + (proxima ? proxima + "." : "");
+        }
+    }
+
+    actualizar();
+    setInterval(actualizar, 60000);
+})();
+</script>
+
         </div>
     </header>
 
@@ -854,8 +1062,10 @@ Brindamos un servicio rápido, transparente y con total garantía para tu tranqu
     const telefono = document.getElementById('modal-telefono')?.textContent || 'No disponible';
     const ubicacion = document.getElementById('modal-ubicacion')?.textContent || 'No disponible';
     const pagado = document.getElementById('modal-pagado')?.textContent || 'No disponible';
+    const tipo = document.getElementById('modal-tipo')?.textContent || 'No especificado';
 
     const datos = `Nombre: ${nombre}
+    Tipo: ${tipo}
     Teléfono: ${telefono}
     Ubicación: ${ubicacion}
     Pagado por: ${pagado}
@@ -921,8 +1131,9 @@ Brindamos un servicio rápido, transparente y con total garantía para tu tranqu
     abortController = null;
   }
 
-  function abrirModal(html) {
+  function abrirModal(html, tipo) {
     modalContent.innerHTML = html;
+    modal.dataset.tipo = tipo || "otro";
     modal.classList.add("active");
   }
 
@@ -943,14 +1154,14 @@ Brindamos un servicio rápido, transparente y con total garantía para tu tranqu
     `;
 
     if (url) {
-      html += `<button class="button" onclick="window.open('${url}', '_blank'); cerrarModal();">✅ Continuar</button>`;
+      html += `<button class="button" data-medir="contacto_confirmado" onclick="window.open('${url}', '_blank'); cerrarModal();">✅ Continuar</button>`;
     }
     
     html += `
-        <button class="button button-danger" onclick="cerrarModal();">❌ Cancelar</button>
+        <button class="button button-danger" data-medir="contacto_cancelado" data-cierre="cancelar" onclick="cerrarModal();">❌ Cancelar</button>
       </div>
             <div style="margin: 1.5rem 0;">
-        <a class="button" onclick="mostrarModalBuscarProveedor()">🔍 ¡Encontrar plomero!</a>
+        <a class="button" data-medir="click_buscar_modal" onclick="mostrarModalBuscarProveedor()">🔍 ¡Encontrar plomero!</a>
         <button class="button" onclick="compartirSeccion();">🗣️ Compartir a un plomero conocido</button>
       </div>
       <div class="modal-legal">
@@ -959,7 +1170,7 @@ Brindamos un servicio rápido, transparente y con total garantía para tu tranqu
       </div>
     `;
 
-    abrirModal(html);
+    abrirModal(html, url ? "contacto" : "aviso");
   }
   
   function mostrarModalAdvertenciaDemo(titulo, mensaje, url = null) {
@@ -986,6 +1197,11 @@ Brindamos un servicio rápido, transparente y con total garantía para tu tranqu
                   style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
                   <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Nombre del negocio</span>
                   <span style="color: #202124; font-size: 13px;" id="modal-nombre">Plomería y gas Santa María</span>
+                </div>
+                <div
+                  style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
+                  <span style="font-weight: 500; color: #5f6368; font-size: 13px;">Tipo</span>
+                  <span style="color: #202124; font-size: 13px;" id="modal-tipo">Persona física</span>
                 </div>
 
                 <div
@@ -1023,11 +1239,11 @@ Brindamos un servicio rápido, transparente y con total garantía para tu tranqu
       `;
 
       if (url) {
-        html += `<button class="button" onclick="window.open('${url}', '_blank'); cerrarModal();">✅ Continuar</button>`;
+        html += `<button class="button" data-medir="contacto_confirmado" onclick="window.open('${url}', '_blank'); cerrarModal();">✅ Continuar</button>`;
       }
       
       html += `
-          <button class="button button-danger" onclick="cerrarModal();">❌ Cancelar</button>
+          <button class="button button-danger" data-medir="contacto_cancelado" data-cierre="cancelar" onclick="cerrarModal();">❌ Cancelar</button>
         </div>
 
                 <div style="display: flex; justify-content: space-between; padding: 8px 0;">
@@ -1037,16 +1253,18 @@ Brindamos un servicio rápido, transparente y con total garantía para tu tranqu
           </span>
         </div>
 
-        <a onclick="copiarDatosProveedor()" href="#" style="font-size: 1rem; float: inline-start;">📋 Copiar al portapapeles esta información</a><br>
-        <a onclick="descargarModalImagen()" href="#" style="font-size: 1rem; float: inline-start;">⬇️ Descargar imagen de esta información</a><br>
-        <a href="#" style="font-size:1rem; color:#d93025; float: inline-start;">⚠️ Reportar problema con este anunciante</a>
+        <a data-medir="click_copiar_info" onclick="copiarDatosProveedor()" href="#" style="font-size: 1rem; float: inline-start;">📋 Copiar al portapapeles esta información</a><br>
+        <a data-medir="click_descargar_info" onclick="descargarModalImagen()" href="#" style="font-size: 1rem; float: inline-start;">⬇️ Descargar imagen de esta información</a><br>
+        <a href="https://wa.me/5491122413762?text=%E2%9A%A0%EF%B8%8F%20Quiero%20reportar%20un%20problema%20con%20un%20anunciante.%0A%0A%F0%9F%93%8D%20P%C3%A1gina%3A%20https%3A//www.plomero.net.ar/cordoba/valle-de-anisacate.html%0A%F0%9F%8F%A2%20Anunciante%3A%20Plomer%C3%ADa%20y%20gas%20Santa%20Mar%C3%ADa%0A%F0%9F%93%9E%20Tel%C3%A9fono%3A%20%2B5493547447453%0A%0A%F0%9F%93%9D%20Problema%3A%20"
+           target="_blank" rel="noopener noreferrer nofollow" data-medir="click_reportar_problema"
+           style="font-size:1rem; color:#d93025; float: inline-start;">⚠️ Reportar problema con este anunciante</a>
         <div class="modal-legal">
           Al contactar, confirmas que aceptas 
           <a href="../terminos-y-condiciones.html">Términos y Condiciones</a>.
         </div>
       `;
 
-      abrirModal(html);
+      abrirModal(html, url ? "contacto" : "aviso");
     }
   
 
@@ -1059,7 +1277,7 @@ Brindamos un servicio rápido, transparente y con total garantía para tu tranqu
     `;
     
     html += `
-        <button class="button button-danger" onclick="cerrarModal();">❌ Cancelar</button>
+        <button class="button button-danger" data-cierre="cancelar" onclick="cerrarModal();">❌ Cancelar</button>
       </div>
       <div class="modal-legal">
         Al enviar el formulario, confirmas que has leído y aceptas 
@@ -1067,7 +1285,7 @@ Brindamos un servicio rápido, transparente y con total garantía para tu tranqu
       </div>
     `;
 
-    abrirModal(html);
+    abrirModal(html, "aviso");
   }
 
   
@@ -1084,14 +1302,14 @@ Brindamos un servicio rápido, transparente y con total garantía para tu tranqu
 
       <p>O probá con una distancia máxima más alta.</p>
       
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar</button>
 
       <div class="modal-legal">
         Al usar el buscador, confirmas que aceptas 
         <a href="../terminos-y-condiciones.html">Términos y Condiciones</a>.
       </div>
     `;
-    abrirModal(html);
+    abrirModal(html, "sin_resultados");
   }
 
   
@@ -1120,14 +1338,14 @@ Brindamos un servicio rápido, transparente y con total garantía para tu tranqu
 
     html += `
       </ul>
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar</button>
       <div class="modal-legal">
         Al contactar a un proveedor, confirmas que aceptas 
         <a href="../terminos-y-condiciones.html">Términos y Condiciones</a>.
       </div>
     `;
 
-    abrirModal(html);
+    abrirModal(html, "resultados");
   }
 
   
@@ -1135,9 +1353,9 @@ Brindamos un servicio rápido, transparente y con total garantía para tu tranqu
     const html = `
       <h1 id="modal-title">📍 Error en la Búsqueda</h1>
       <p><strong>${mensaje}</strong></p>
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar e Intentar de Nuevo</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar e Intentar de Nuevo</button>
     `;
-    abrirModal(html);
+    abrirModal(html, "error");
   }
 
   
@@ -1213,7 +1431,7 @@ Brindamos un servicio rápido, transparente y con total garantía para tu tranqu
           <p>Buscando proveedores cercanos...</p>
         </div>
         <div id="progress-bar"></div>
-      `);
+      `, "cargando");
 
       const posicion = await obtenerUbicacionConFallback();
       const userLat = posicion.coords.latitude;
@@ -1292,7 +1510,7 @@ Brindamos un servicio rápido, transparente y con total garantía para tu tranqu
       <input type="number" id="umbral-km" value="${ultimoUmbralKm}" step="1" min="0" style="width: 100%; text-align: center;">
       <p>Si hay proveedores aparecerán del más cercano al más lejano.</p>
       <button onclick="buscarPorUbicacion();" class="button button1">🔍 Buscar proveedor de servicios</button>
-      <button class="button button-danger" onclick="cerrarModal();">❌ Cerrar</button>
+      <button class="button button-danger" data-cierre="boton" onclick="cerrarModal();">❌ Cerrar</button>
      
 
 <select id="barrios" onchange="window.location.href=this.value;" class="button button2" style="width:80%;background-color: var(--fondo);color: white;">
@@ -1330,7 +1548,7 @@ Brindamos un servicio rápido, transparente y con total garantía para tu tranqu
         <a href="../terminos-y-condiciones.html">Términos y Condiciones</a>.
       </div>
       `;
-    abrirModal(html);
+    abrirModal(html, "buscar");
 
       inicializarSelect2("#barrios", "Buscar barrios");
   }
